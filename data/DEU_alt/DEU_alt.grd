@@ -1,0 +1,27 @@
+[general] 
+creator=R package 'raster' 
+created= 2011-11-12 14:28:27 
+[georeference] 
+nrows= 960 
+ncols= 1116 
+xmin= 5.8 
+ymin= 47.2 
+xmax= 15.1 
+ymax= 55.2 
+projection= +proj=longlat +ellps=WGS84 
+[data] 
+datatype= INT2S 
+byteorder= little 
+nbands= 1 
+bandorder= BIL 
+categorical= FALSE 
+minvalue= -179 
+maxvalue= 2807 
+nodatavalue= -9999 
+[legend] 
+legendtype=  
+values=  
+color=  
+[description] 
+layername= DEU_alt 
+history=  
