@@ -1,0 +1,568 @@
+---
+title: "Basic spatial R workshop - 1"
+author: "Tobias Andermann"
+date: "5/24/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## Introduction to spatial data in R
+(This tutorial is inspired by [this very useful spatial R tutorial](http://rspatial.org/spatial/index.html) written by Robert Hijmans.)
+
+Dependencies:
+```{r, message=FALSE, warning=FALSE}
+library(sp)
+library(raster)
+library(sf)
+```
+
+If you are completely new to R, have a look at [this general R introduction tutorial](https://rspatial.org/intr/index.html). It is very lengthy but well written and easy to follow. You don't have to do all of it, but try to understand the basic R syntax and once you feel like you get a hang of it, you can go back to this spatial tutorial. Take your time understanding the basics of R programming, that way the spatial tutorial will make a lot more sense for you as well. It's okay if you are behind on the general course pace, the main point of this course is for you to get the most out of it, and not to copy-paste commands you don't really understand the purpose of.
+
+Before we jump into working with real spatial data, let's first learn a bit more about the basic types of objects we will be working with. In general one can decide between two differnt types of spatial data: **vectors and rasters**.
+
+**Vectors** are used to represent discrete objects with clear boundaries, e.g. sampling locations, rivers, roads, country borders etc. 
+
+**Rasters** are applied to represent continuous phenomena, or “spatial fields”, e.g. elevation, temperature, or species diversity.
+
+
+### 1. Vector data
+
+Let's first go through the basic types of vector data that are used in spatial analyses, which are points, lines, and polygons. 
+
+First we create some fake data. Let's pretend we are creating data for 10 taxa with the names `A`-`J`. Let's first just create this list of fake taxon names. You can use the `LETTERS` default array and extract the 10 first elements of it as shown in the command below. We'll assign this to the variable `name` which will now contain the first 10 letters of the alphabet, which are going to be our taxon names.
+```{r, message=FALSE, warning=FALSE}
+# create taxon names
+name <- LETTERS[1:10]
+name
+```
+
+For each of these taxa we have a sampling location (`sampling_sites`) and a body size measurement in cm (`body_size`). To create coordinate data, we define one array with longitude and another with lattitude values of each point (made up data). You can use the `cbind()` command to pair them up into coordinate pairs, and we'll store these coordinate pairs as a new variable called `sampling_sites`. Print the content of the `sampling_sites` to the screen to understand what our fake coordinate data look like.
+
+```{r, message=FALSE, warning=FALSE}
+# generate sampling locations
+longitude <- c(-116.7, -120.4, -116.7, -113.5, -115.5,
+               -120.8, -119.5, -113.7, -113.7, -110.7)
+latitude <- c(45.3, 42.6, 38.9, 42.1, 35.7, 38.9,
+              36.2, 39, 41.6, 36.9)
+# this command simply combines the two arrays longitude and latitude into a shared matrix
+sampling_sites <- cbind(longitude, latitude)
+
+# define body sizes of sampled individuals
+body_size = c(11,15,17,19,22,12,21,14,9,18)
+```
+
+A good way of dealing with all these different data arrays (names, longitude, latitude, boday size) is to join these arrays into one data frame in order to keep it together and sorted.
+
+```{r, message=FALSE, warning=FALSE}
+# join data in a single dataframe
+wst <- data.frame(longitude, latitude, name, body_size)
+wst
+```
+
+We won't be working with this dataframe in this tutorial, but it's good to know how to store your data this way. Also it's handy to know how to extract individual data columns from a dataframe. We can do that by using square brackets `[]` and the index of the column (or sets of columns) that we want to extract. Within the square brackets, you can specify the lines and columns to extract, uisng the following indexing syntax `[lines,columns]`. E.g. if we want to extract the first two columns (and all lines) we can do it like this (the `,` separates the indices for line and columns, in this case we leave the lines part blank, which will lead to all lines being extracted):
+
+```{r, message=FALSE, warning=FALSE}
+wst[,1:2]
+```
+
+Likewise if you want ot extract the first 3 lines and all columns for these lines you can type:
+
+```{r, message=FALSE, warning=FALSE}
+wst[1:3,]
+```
+
+
+Alternatively, you can also extract columns by their name by using the `$` sign. E.g. if you want to extract the body size columns you can extract if like this:
+
+```{r, message=FALSE, warning=FALSE}
+wst$body_size
+```
+
+
+
+#### Points
+Now let's plot the data **points** (coordinates) in a coordinate system. You plot in R by using the `plot()` function. The easiest way to plot our coordinate points is by using the `sampling_sites` object we created a little bit ago with the `cbind()` command. This object has the x and y coordinates (longitude and latitude) for each point already paired up and stored in the right format to plot. There are several settings you can use in the plot command, such as `cex` which alters the point size, `pch` which alters the shape of the points (see [overview of available pch values here](http://coleoguy.blogspot.com/2016/06/symbols-and-colors-in-r-pch-argument.html)), and `col` where you can define the color of the points. Play around with these settings a bit if this is your first time plotting in R, it's good to know and fun to play with. The `main` argument in the plot command defines the title of the plot.
+You can add the names that we defined to each point in our `names` array by using the `text()` function as shown below.
+
+<div class="alert alert-block alert-success">
+**General note on plotting:** You can plot a variety of different types of objects in R using the `plot()` command. Everytime you call the `plot()` function it will overwrite the previous plot (unless you add `add=T` to the plotting command, in that case it will be added to the previous plot). In the following we will be using other plotting functions in combinations with the default `plot()`, such as e.g. the `text()`, `lines()`, `polygons()` functions. All of these functions will add information to existing plots without overwriting it, but they cannot be used alone without a preceeding `plot()` call.
+</div>
+
+```{r, message=FALSE, warning=FALSE}
+plot(sampling_sites, cex=2, pch=20, col='red', main='Sampling sites')
+# add names to plot
+text(sampling_sites, name, pos=4)
+```
+
+As you see in our plot we didn't plot a map, but instead a simple coordinate system. However the spatial relationships between the points are plotted in the correct ratios based on their latitude and longitude coordinates. In principle, plotting points on a map is just plotting in a regular coordinate system (as above) with a fancy background.
+
+#### Lines
+We can also plot **lines** connecting our dots from above, using the `lines()` function. Here we are only **plotting** our points as lines but later we will see how to define line objects, which besides the point coordinate information also carry the information in which order the points are connected. This can be used e.g. to visualize a time chronology of sampling.
+
+
+```{r, message=FALSE, warning=FALSE}
+# first plot the points just as we did previously
+plot(sampling_sites, cex=2, pch=20, col='red', main='Sampling sites')
+# draw lines between data points
+lines(sampling_sites, lwd=3, col='red')
+text(sampling_sites, name, pos=4)
+```
+
+#### Polygons
+We can also plot a **polygon** from the same data, using the `polygon()` function.
+
+```{r, message=FALSE, warning=FALSE}
+plot(sampling_sites, cex=2, pch=20, col='red', main='Sampling sites')
+polygon(sampling_sites, col='blue', border='light blue')
+text(sampling_sites, name, pos=4)
+```
+
+As you can see, also in case of polygons it matters in which order the points are stored. Let's reorder our data points and see how the polygon changes. For reordering an array we can just select the elements in the desired order by using their indices. For example for an array containing the 3 values 'a','b',and 'c' named `my_tiny_array` you can reorder the array having the 2nd element followed by the 3rd and then the 1st like this:
+
+```{r, message=FALSE, warning=FALSE}
+my_tiny_array = c('a','b','c')
+my_tiny_array[c(2,3,1)]
+```
+
+Now we want to do the same for our coordinate array `sampling_sites`. Since this is a 2D array we need to specify rows and columns when selecting indices. Since we want to extract both columns and only reorder the lines in our `sampling_sites` array, we specify the new order of row indices followed by a comma.
+
+```{r, message=FALSE, warning=FALSE}
+reordered_sampling_sites = sampling_sites[ c(1,2,6,7,5,10,8,3,9,4), ]
+plot(reordered_sampling_sites, cex=2, pch=20, col='red', main='Sampling sites')
+polygon(reordered_sampling_sites, col='blue', border='light blue')
+text(sampling_sites, name, pos=4)
+```
+
+#### Defining spatial objects
+
+So far we have only worked with simple data points stored in arrays. However, different data object types exist that are specifically designed to handle spatial data. Some of the most commonly used objects are defined in the `sp` package. For vector data, the basic types are the `SpatialPoints()`, `SpatialLines()`, and `SpatialPolygons()`. These data objects only represent geometries. To also store attributes, additional data objects are available with these names plus 'DataFrame', for example, `SpatialPolygonsDataFrame()` and `SpatialPointsDataFrame()`. The advantage of this over e.g. just storing your coordinates in array form as we did so far, is that these data spatial objects have several useful functions, for example you can define the coordinate reference system of your coordinates in the spatial object, which makes it easy to later on transform your coordinates into another coordinate projection (you will see examples of that later on). Also most spatial functions you may be using to process or plot your data may require your data to be stored as spatial objects. Let's store our coordinates as a `SpatialPoints()` object and inspect the content and structure of this object with the `showDefault()` function.
+
+
+```{r, message=FALSE, warning=FALSE}
+library(sp)
+pts <- SpatialPoints(sampling_sites)
+# use the showDefault() function to view th content of the object (works for any type of object in R)
+showDefault(pts)
+```
+
+You see that besides the coordinate pairs we defined, this object contains information about the bounding box `bbox`, which defines the smallest rectangle containing all of your points. It also contains the currently empty slot `proj4string`, which is where you can store the coordinate reference system of your points, which we will do in a little bit.
+You will also notice when plotting the points that the plot will look a bit different than before (e.g. it's lacking the x and y axis). The reason for that is that the default plotting options for `SpatialPoints()` objects are different than those of simple numeric arrays (which makes sense because often when you want to plot points on a map, you may not wany the x-axis and y-axis to show).
+
+```{r, message=FALSE, warning=FALSE}
+plot(pts, cex=2, pch=20, col='red', main='Sampling sites')
+```
+
+You can extract the additional values stored in the `SpatialPoints()` object, e.g. the coordinates of the bounding box, like this:
+
+```{r, message=FALSE, warning=FALSE}
+box = bbox(pts)
+box
+```
+
+
+Let's plot the bounding box with our coordinates to see what it looks like. You can use the `rect()` function to plot a simple rectangle given the x and y coordinates of two opposing corner points:
+
+```{r, message=FALSE, warning=FALSE}
+plot(pts, cex=2, pch=20, col='red', main='Sampling sites')
+rect(box[1],box[2],box[3],box[4])
+```
+
+
+Let's now use the `SpatialPointsDataFrame()` function to define a spatial object containing additional information about the samples (sample name and measured body size). For this we first store the data in a dataframe and then assign it to the `SpatialPointsDataFrame()` object together with the coordinates:
+
+```{r, message=FALSE, warning=FALSE}
+additional_data <- data.frame(sample_name=name, body_size=body_size)
+ptsdf <- SpatialPointsDataFrame(pts, data=additional_data)
+showDefault(ptsdf)
+```
+
+Now we'll use a different function to create a spatial line object using the `spLines()` function. For this we first need to load the package `raster`. We'll also make up some new data, in order to have different data points than for the `SpatialPoints` object from above:
+
+```{r, message=FALSE, warning=FALSE}
+library(raster)
+# make up new data
+lon <- c(-116.8, -114.2, -112.9, -111.9, -114.2, -115.4, -117.7)
+lat <- c(41.3, 42.9, 42.4, 39.8, 37.6, 38.3, 37.6)
+lonlat <- cbind(lon, lat)
+# store data as spatial lines object
+lns <- spLines(lonlat)
+lns
+```
+
+Now if you plot this `spLines()` object, the plot function will automatically know to plot it as lines and not as points:
+
+```{r, message=FALSE, warning=FALSE}
+plot(lns)
+```
+
+
+Similarly to the lines object, we can use the same points to create a polygon using the `spPolygons()` function:
+
+```{r, message=FALSE, warning=FALSE}
+pols <- spPolygons(lonlat)
+pols
+```
+
+Now let's plot the polygon and on top of it the spatial points form earlier.
+
+```{r, message=FALSE, warning=FALSE}
+#plot(pols, axes=TRUE, las=1)
+plot(pts, col='black', pch=20, cex=2,axes=TRUE)
+plot(pols, border='brown', col='lightgreen', lwd=3,add=T)
+plot(pts, col='black', pch=20, cex=2,add=T)
+
+```
+
+You may have noticed that this time we don't have to use the specific plotting functions `polygon()` or `lines()` to tell R what kind of object we want to plot, but instead we are simply using the `plot()` function and R plots the data in the correct form by default, since this information is contained in the specific types of spatial objects we defined.
+
+### 2. Rasters
+
+Now let'swork a bit with rasters. The first type of raster object we will work with is called `RasterLayer()` and is defined in the `raster` library.
+
+A RasterLayer object represents single-layer raster data. A RasterLayer object always stores a number of fundamental parameters that describe it. These include the number of columns and rows, the spatial extent, and the Coordinate Reference System.
+
+Here we create a RasterLayer from scratch. But note that in most cases where real data is analyzed, these objects are read from a file. We define a raster with 10 rows and 10 columns and we define the extent of the raster on the x-axis (longitude) and on the y-axis (latitude).
+
+
+```{r, message=FALSE, warning=FALSE}
+library(raster)
+rast <- raster(ncol=10, nrow=10, xmn=-150, xmx=-80, ymn=20, ymx=60)
+rast
+```
+
+You can see in the last line of the output that by default the `raster()` function created the raster using the coordinate reference system `+proj=longlat +datum=WGS84`. We will learn later what that means.
+
+So far the object we created represents only a skeleton of a raster data set. That means, we have defined information about its location, resolution, etc., but there are no values associated with it. Let’s fill the skeleton with some made up data. In this case we assign a vector of random numbers (generated from a uniform distribution using the `runif()` function) with a length that is equal to the number of cells of the RasterLayer.
+
+
+<div class="alert alert-block alert-success">
+**Exploring the raster object:** Just as we did earlier, we can use the `showDefault()` function again to explore the contents of the raster object. Executing `showDefault(rast)` will show you all the available information stored in the raster object that we just defined. Any of the 'Slots' that are listed as output of that function are values that can be accessed by calling the name of the slot followed by the name of the raster object in parantheses. For example you will find the slot `nrows` in the output of the `showDefault(rast)` command and you can extract that information specifically with `ncol(rast)`.
+</div>
+
+You can determine the number of cells in your raster using `ncell()`:
+
+```{r, message=FALSE, warning=FALSE}
+ncell(rast)
+```
+
+Now let's create as many random numbers (between 0 and 1) as we have cells in our raster:
+
+```{r, message=FALSE, warning=FALSE}
+raster_values = runif(ncell(rast))
+raster_values
+```
+
+Now we assign these random values to the raster using the `values()` function and plot the raster with these new values.
+
+```{r, message=FALSE, warning=FALSE}
+values(rast) = raster_values
+plot(rast)
+```
+
+And just because we can, and to demonstrate that the coordinate systems of our created raster and our previously defined spatial vector object match, plot the spatial polygon `pols`and the spatial points `pts` on top of the raster (Tip: you can use `add=T` in the plot command to add additional layers on top of an existing plot without overwriting the previous plot).
+
+The final plot should look like this:
+
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+values(rast) <- raster_values
+plot(rast)
+plot(pols, border='brown', col='lightgreen', lwd=3,add=T)
+plot(pts, col='black', pch=20, cex=1,add=T)
+```
+
+### 3. Reading spatial data from file
+We can use the `readShapePoly()` function in order to read a shape file as a vectorized polygon into R.
+A shape file is usually made up of at least four parts. The .SHP, the .DBF, the .PRJ and the .SHX.
+
+- **SHP:** This file contains the geometry of each feature.
+- **DBF:** This is a database file which contains the attribute data for all of the features in the dataset. The database file is very similar to a sheet in a spreadsheet and can even be opened in Excel.
+- **SHX:** The .shx is the spatial index, it allows spatial programs to find features within the .SHP file more quickly.
+- **PRJ:** The .prj is the projection file. It contains information about the "projection" and "coordinate system" the data uses.
+
+Below we are going to read a shape file downloaded from [DIVA-GIS](http://www.diva-gis.org/gdata). You can open the link and download your own shape file or work with the example data:
+
+
+```{r, message=FALSE, warning=FALSE}
+library(sf)
+germany = st_read('../data/DEU_adm/DEU_adm0.shp')
+```
+
+<!-- The object we created using the `st_read()` function is in `sf` format, which represents a data frame. In order to turn it into a `SpatialPolygon` object, we can use the function `as(my_object, 'Spatial')`, where `my_object` in this case is our `sf` object called `germany`: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- germany_spatial = as(germany, 'Spatial') -->
+<!-- ``` -->
+
+<!-- Now let's plot the polygon object we just created: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- plot(germany_spatial,main='Germany') -->
+<!-- ``` -->
+
+<!-- Similarly we can read raster data, using the `raster()` function. In this example we are reading altitude information for Germany: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- germany_alt_raster = raster('../data/DEU_alt/deu_alt.grd') -->
+<!-- plot(germany_alt_raster,main='Altitude in meters above sea level') -->
+<!-- ``` -->
+
+<!-- For the most informative representation of the data, let's plot the polygon on top of the raster in the same plot: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- plot(germany_alt_raster) -->
+<!-- plot(germany_spatial,add=TRUE) -->
+<!-- ``` -->
+
+<!-- ### 4. Coordinate Reference Systems -->
+<!-- We will cover the theory behind coordinate reference systems and spatial object projections in our advanced R workshop more extensively. For now, to get a basic understanding what this is all about, please read the sections 6.1 and 6.2 in [this summary about coordinate reference systems](http://rspatial.org/spatial/rst/6-crs.html), which explains the background about different two-dimensional projections of geographic data. -->
+
+<!-- ### 5. Working with vector data -->
+<!-- Now we are going to play around with a map of Luxembourg in order to demonstrate some of the basic polygon transformation and editing tools: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- lux = st_read('../data/luxembourg/lux.shp') -->
+<!-- lux -->
+<!-- lux_spatial = as(lux, 'Spatial') -->
+<!-- ``` -->
+
+<!-- You can see that the spatial object we loaded is made up by 12 polygons (lines), which are defined in the last column (`geometry`). There are five different values associated with each polygon which are stored in the columns `ID_1`,`NAME_1`,`ID_2`,`NAME_2`,`AREA`. When plotting the actual `sf` object `lux` (instead of the `SpatialPolygon` object `lux_spatial`), the default plotting function automatically puts out all layers and colors the polygons by their values: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- plot(lux,axes = T) -->
+<!-- ``` -->
+
+<!-- We can select a single layer by using the respective index: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- plot(lux[4],axes = T) -->
+<!-- ``` -->
+
+<!-- We can extract the values of a specific column like this: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- lux$NAME_2 -->
+<!-- ``` -->
+
+<!-- In some cases you may want to add a column of additional values to the polygon object, e.g. if you want to code which of these regions you have sampled (`1` stands for samples and `0` stands for not sampled): -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- new_values = c(0,1,1,0,1,0,1,1,0,0,0,1) -->
+<!-- lux$sampled_regions = new_values -->
+<!-- plot(lux['sampled_regions'],axes = T) -->
+<!-- ``` -->
+
+<!-- You can easily remove the column you just added above, using this command -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- lux$sampled_regions <- NULL -->
+<!-- ``` -->
+
+<!-- But for now let's add the new column again and selectively only plot those areas that have not yet been sampled. We can do that by finding the indexes `i` for the regions where our new column has the value 0 and then extracting all of those rows from the spatial data object: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- new_values = c(0,1,1,0,1,0,1,1,0,0,0,1) -->
+<!-- lux$sampled_regions = new_values -->
+<!-- i <- which(lux$sampled_regions == 0) -->
+<!-- g <- lux[i,] -->
+<!-- plot(g['sampled_regions'],main='Unsampled areas',axes = T) -->
+<!-- ``` -->
+
+<!-- ### Creating raster over polygon and convert raster back to polygon -->
+<!-- Let's say we want to divide our polygon into 4 equally sized cells. To do this we first need to rasterize the polygon data and then convert the raster back to polygon. -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- z <- raster(lux_spatial, nrow=2, ncol=2, vals=1:4) -->
+<!-- z <- as(z, 'SpatialPolygonsDataFrame') -->
+<!-- plot(lux['geometry'],axes = T) -->
+<!-- plot(z, add=TRUE, border='blue', lwd=5) -->
+<!-- ``` -->
+
+<!-- There are several useful functions when working with polygons, e.g. the `aggregate()` function, which can be used to join polygons based on their values. Let's use that function to join the area polygons by their vallues in the `NAME_1` column: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- lux_spatial = as(lux, 'Spatial') -->
+<!-- counties = aggregate(lux_spatial, by='NAME_1') -->
+<!-- plot(counties, col=rainbow(3), lwd=3, border='white',axes = T) -->
+<!-- ``` -->
+
+<!-- Polygons are also really handy when it comes to operations with the overlap of multiple spatial objects. E.g. we can remove the overlap between two polygons using the `erase()` functions. Here we remove the overlap between the map of Luxembourg and the second field cell from our grid that we defined above: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- e <- erase(lux_spatial, z[2,]) -->
+<!-- plot(e,axes = T) -->
+<!-- ``` -->
+
+<!-- The `intersect()` function on the other hand does basically the opposite and keeps only what's shared between two polygons. Using this function we can e.g. extract the part of the map of Luxembourg that falls into our second cell of the made-up grid: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- i <- intersect(lux_spatial, z[2,]) -->
+<!-- plot(i,axes = T) -->
+<!-- ``` -->
+
+<!-- We can also simply define a rectangle (here we made up some coordinates that are within the range of the coordinate system of the map) and extract the region that it covers. We can use the `crop()` (or the `intersect()`) function to extract the region and here we plot it in a different color to the rest of the map. -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- e <- extent(6, 6.4, 49.7, 50) -->
+<!-- pe <- crop(lux_spatial, e) -->
+<!-- plot(lux_spatial,axes = T) -->
+<!-- plot(pe, col='light blue', add=TRUE) -->
+<!-- plot(e, add=TRUE, lwd=3, col='red') -->
+<!-- ``` -->
+
+<!-- Another polygon-overlap function is the `union()` function, which can be used to join two spatial objects. As you can see in the plot below, this function creates new polygon objects from the parent objects which are defined by the borders of both of the parents. E.g. a region that was defined within out `lux_spatial` object is split into two, if an edge of the vectorized grid-object `z` runs through it: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- u <- union(lux_spatial, z) -->
+<!-- u -->
+<!-- set.seed(5) -->
+<!-- plot(u,col=sample(rainbow(length(u))),axes = T) -->
+<!-- ``` -->
+
+<!-- The `cover()` function is a combination between the `intersect()` and `union()` functions. It takes the outer boundary of the polygon of the first object and intersects it with the second object, defining new polygons based on the intersect. -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- cov <- cover(lux_spatial, z) -->
+<!-- cov -->
+<!-- plot(cov,axes = T) -->
+<!-- ``` -->
+
+<!-- ### Spatial queries -->
+<!-- Let's define a set of 5 points and then check which of the polygons they fall into. First we define the points and convert them into a `SpatialPoints` object: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- pts <- matrix(c(6, 6.1, 5.9, 5.7, 6.4, 50, 49.9, 49.8, 49.7, 49.5), ncol=2) -->
+<!-- pts -->
+<!-- spts <- SpatialPoints(pts, proj4string=crs(lux_spatial)) -->
+<!-- plot(lux_spatial, col='blue', lwd=2,axes=T) -->
+<!-- points(spts, col='light gray', pch=20) -->
+<!-- text(spts, 1:nrow(pts), col='red', cex=1.5,pos=4) -->
+<!-- ``` -->
+
+<!-- Now we can use the `over()` function in order to check if and where each point in our `SpatialPoints` object intersects with the `lux_spatial` polygon: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- my_over_output = over(spts, lux_spatial) -->
+<!-- my_over_output -->
+<!-- ``` -->
+
+<!-- <div class="alert alert-block alert-warning"> -->
+<!-- **Task:** Plot only the regions that contain a point, using any combination of the functions that we used in the previous steps. The final plot should look like the one below: -->
+<!-- </div> -->
+
+<!-- <div class="alert alert-block alert-success"> -->
+<!-- Tip: Depending on how familiar you are with R or other programming languages, you may be able to do this without the instructions below. Maybe first give it a shot and if you get stuck, have a look at the instructions below. -->
+
+<!-- One approach would be: -->
+
+<!-- 1. Extract a list of target region names from the `over()` function output (make sure you extract a data column that enables you to uniquely identify each region). You extract a specific data column using the `$column_name` notation following the name of the object, e.g. `my_over_output$ID_1` extracts the column `ID_1` from the `my_over_output` object.  -->
+
+<!-- 2. Identify which of the lines in the `lux_spatial` object match this list of target regions. You can use the `which()` function to determine the indeces (line numbers) that fulfil a given requirement. In order to define a requirement you can use the `%in%` notation to test which elements from one list match with elements from another, e.g. `which(lux_spatial$NAME_2 %in% my_list_of_target_regions)` returns the indeces of those polygons, whose name is present in the list `my_list_of_target_regions`. -->
+
+<!-- 3. Extract the target polygons from the `lux_spatial` object. Use the indeces that where produced by the `which()` command to index the polygons you which to extract, e.g. `lux_spatial[list_indeces,]` extracts all indeces present in the list `list_indeces`. -->
+
+<!-- </div> -->
+
+<!-- ```{r, message=FALSE, warning=FALSE,echo=FALSE} -->
+<!-- i <- which(lux_spatial$NAME_2 %in% over(spts, lux_spatial)$NAME_2) -->
+<!-- g <- lux_spatial[i,] -->
+
+<!-- plot(g, col='blue', lwd=2,axes=T) -->
+<!-- points(spts, col='light gray', pch=20) -->
+<!-- text(spts, 1:nrow(pts), col='red', cex=1.5,pos=4) -->
+<!-- ``` -->
+
+<!-- ### 6. Working with raster data -->
+<!-- It's rather straight-forward to generate a raster in R. As we did earlier in this tutorial we can just create a raster by using the `raster()` command and specifying the number of cells and extent in x and y direction. Remember that this command only creates the skeleton (empty raster). Here we just fill these cells with random numbers between 0 and 1 using the `runif()` command. -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- x <- raster(ncol=36, nrow=18, xmn=-1000, xmx=1000, ymn=-100, ymx=900) -->
+<!-- values(x) <- runif(ncell(x)) -->
+<!-- plot(x) -->
+<!-- ``` -->
+
+<!-- You can check the resolution of the raster (dimensions of each cell) using the `res()` command: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- res(x) -->
+<!-- ``` -->
+
+<!-- You can change the resolution of the raster. Let's change it to `1`: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- res(x) <- 1 -->
+<!-- values(x) <- runif(ncell(x)) -->
+<!-- plot(x) -->
+<!-- ``` -->
+
+<!-- We can access the coordinate projection of the raster using the `projection()` function and can assign a value to it (see [this link from earlier](http://rspatial.org/spatial/rst/6-crs.html) to check again the notation for different coordinate reference systems). There will be a more thorough explanation of how to decide which projection to assign to your spatial object in the [empirical data tutorial](./empirical_data_tutorial.ipynb). -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- projection(x) <- "+proj=utm +zone=48 +datum=WGS84" -->
+<!-- projection(x) -->
+<!-- ``` -->
+
+<!-- Summary of some useful basic raster commands: -->
+
+<!-- - **res()** - access the raster resolution (cell dimensions) -->
+<!-- - **projection()** - access the coordinate projection of the raster -->
+<!-- - **ncell()** - access the number of cells in the raster -->
+<!-- - **ncol()** - access the number of columns in the raster -->
+<!-- - **dim()** - access the dimension of the raster (cells in x and y direction) -->
+<!-- - **values()** - access the values stored in the raster cells -->
+<!-- - **hasValues()** - check if raster contains values or if it's just an empty skeleton -->
+<!-- - **xmax()** - access the maximum x value -->
+<!-- - **xmin()** - ... -->
+<!-- - **ymax()** - ... -->
+<!-- - **ymin()** - ... -->
+
+<!-- We can stack multiple rasters into the same object by using the `stack()` command. Here we define 3 rasters with random numbers and stack them: -->
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- r1 <- r2 <- r3 <- raster(nrow=10, ncol=10) -->
+
+<!-- # Assign random cell values -->
+<!-- values(r1) <- runif(ncell(r1)) -->
+<!-- values(r2) <- runif(ncell(r2)) -->
+<!-- values(r3) <- runif(ncell(r3)) -->
+
+<!-- s <- stack(r1, r2, r3) -->
+<!-- plot(s) -->
+<!-- ``` -->
+
+<!-- #### Algebraic operations with rasters  -->
+<!-- Rasters are very straightforward to work with, since they allow the use of simple algebraic operators such as +, -, \*, /, as well as logical operators such as >, >=, <, ==, !. -->
+
+<!-- For example if we want to add the values across all 3 rasters from above we can simply do that like this: -->
+
+
+<!-- ```{r, message=FALSE, warning=FALSE} -->
+<!-- sum_rasters = r1 + r2 + r3 -->
+<!-- # or: -->
+<!-- sum_rasters = sum(r1, r2, r3) -->
+
+<!-- plot(sum_rasters) -->
+
+<!-- ``` -->
+
+<!-- ### Vector to raster conversion -->
+
+<!-- The raster packages supports point, line, and polygon to raster conversion with the `rasterize()` function. For vector type data (points, lines, polygons), objects of `Spatial*` classes defined in the sp package are used; but points can also be represented by a two-column matrix (x and y). -->
+
+<!-- #### Points to raster -->
+<!-- Point to raster conversion is often done with the purpose to analyze the point data. For example to count the number of distinct species (represented by point observations) that occur in each raster cell. rasterize takes a Raster object to set the spatial extent and resolution, and a function to determine how to summarize the points (or an attribute of each point) by cell. -->
+
+<!-- #### Polygons to raster -->
+<!-- Polygon to raster conversion is typically done to create a `RasterLayer` that can act as a mask, i.e. to set to `NA` a set of cells of a raster object, or to summarize values on a raster by zone. For example a country polygon is transferred to a raster that is then used to set all the cells outside that country to `NA`. -->
+
+<!-- We will use examples of this in the [next tutorial](./tutorial_2.html), using real data. -->
+
+
+
+
+
