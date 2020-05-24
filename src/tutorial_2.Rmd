@@ -1,7 +1,7 @@
 ---
 title: "Basic spatial R workshop - 2"
 author: "Tobias Andermann"
-date: "9/26/2019"
+date: "5/24/2020"
 output:
   html_document: default
   pdf_document: default
@@ -10,25 +10,34 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-
 ## Empirial data tutorial
 
+Dependencies:
+```{r, message=FALSE, warning=FALSE}
+library(rgbif)
+library(sp)
+library(raster)
+library(sf)
+```
+
+
+
 ### 1. Occurrence count in raster
-In this tutorial you will download species occurrence data of your species of choice from GBIF and plot the number of occurrences per cell for a country of choice.
+In this tutorial you will download species occurrence data of your species of choice from GBIF and plot the number of occurrences per cell as a measure of population density of the species for a country of choice.
 
 <div class="alert alert-block alert-warning">
 Task: Choose your own species and country when going through the following steps. Make sure you pick a species with sufficient available records (see command for checking this in the next code cell), otherwise the resulting raster will look quite boring. In the example I'm working with the species Aquila chrysaetos (golden eagle) in Sweden.
 </div>
 
 #### Getting the data
-Here we we use the R package `rgbif` to download occurrence data directly from GBIF into R. Let's see how many occurrences we can find for golden eagles in Sweden. You can use the `publishingCountry=` option to only extract occurrences from a given country. Another useful argument is `hasCoordinate = T`, which only allows records with valid coordinates. You can choose to only extract summary data `return =  "meta"` in order to first get an idea how many data points there are, before starting to download. This is recommendable because it can take a very long time to download tens of thousands of occurrences, so it's best to know beforehand what you are in for.
+Here we we use the R package `rgbif` to download occurrence data directly from GBIF into R. GBIF is a large central database that contains all kinds of species occurrence records. Let's see how many occurrences we can find for our target species in the country of our choice. You can use the `publishingCountry=` option to only extract occurrences from a given country. Another useful argument is `hasCoordinate = T`, which only allows records with valid coordinates. You can choose to only extract summary data `return =  "meta"` in order to first get an idea how many data points there are, before starting to download. This is recommendable because it can take a very long time to download tens of thousands of occurrences, so it's best to know beforehand what you are in for.
 
 ```{r, message=FALSE, warning=FALSE, cache=TRUE}
 library(rgbif)
 occ_search(scientificName = "Aquila chrysaetos", publishingCountry='SE', hasCoordinate = T, return =  "meta")$count
 ```
 
-Now let's download the data by setting `return =  "data"`. For this exercise you can keep the number of data points in a managable range by setting a limit, e.g. `limit=5000`:
+As you can see there are a lot of records in my case. What does it look like for your target species? Let's now download the actual data containing the coordinates for our target species by setting `return =  "data"`. For this exercise you can keep the number of data points in a managable range by setting a limit, e.g. `limit=5000`:
 
 ```{r, message=FALSE, warning=FALSE, cache=TRUE}
 golden_eagle <- occ_search(scientificName = "Aquila chrysaetos", publishingCountry='SE',hasCoordinate = T,return =  "data", limit = 5000)
@@ -36,71 +45,81 @@ golden_eagle <- occ_search(scientificName = "Aquila chrysaetos", publishingCount
 #write_csv(x = golden_eagle, path = "../data/golden_eagle.csv")
 ```
 
-This is how you extract the longitude and latitude information from the `occ_search()` output. The command `cbind()` turns these two data arrays into a matrix:
+This is how you extract the longitude and latitude information from the `occ_search()` output.
 
 ```{r, message=FALSE, warning=FALSE}
 lon = golden_eagle$decimalLongitude
 lat = golden_eagle$decimalLatitude
-locations = cbind(lon, lat)
 ```
 
-As before in the intro tutorial, we will use the `SpatialPoints()` function to turn this matrix into a `SpatialPoints` object:
+<div class="alert alert-block alert-warning">
+Task: Turn the coordinates into a `SpatialPoints` object, as we did in the first tutorial. Store the resulting object under the name `species_occurrences`. You will need to have the `sp` package loaded for this `library(sp)`. Remember to first turn the coordinates into a 2D array and then transform them into a spatial object. Then plot the points. You can add the axes to your plot by adding `,axes=T` to your `plot()` command.
+</div>
 
-```{r, message=FALSE, warning=FALSE}
+
+```{r, message=FALSE, warning=FALSE, echo=False}
 library(sp)
-eagle_data_spatial <- SpatialPoints(locations)
-plot(eagle_data_spatial,axes=T)
+locations = cbind(lon, lat)
+species_occurrences <- SpatialPoints(locations)
+plot(species_occurrences,axes=T)
 ```
 
-### Loading a country map (Sweden)
-I stored a file containing simple maps of all countries in the `data/ne_10m_admin_0_countries/` folder. Read the data using the `st_read()` function from the `sf` library.
+### Loading a country map
+I stored a file containing simple maps of all countries in the `data/ne_10m_admin_0_countries/` folder (available on the GitHub repo, which you probably already have downloaded during the first tutorial).
+
+<div class="alert alert-block alert-warning">
+Task: Read the shape data of all countries, as we did for the shape files in the first tutorial and store it under the name `all_countries`. Remember you need to load the `sf` package for this, if it's not already loaded.
+</div>
 
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 library(sf)
 all_countries = st_read('../data/ne_10m_admin_0_countries/ne_10m_admin_0_countries.shp')
 ```
 
-Extract the data of your country of choice from the `all_countries` object and convert the data into a spatial object using the `as(...,'Spatial')` function:
+Extract the data for your country of choice from the `all_countries` object and convert the sf object into a spatial object using the `as(...,'Spatial')` function. The country names are stored in the `SOVEREIGNT` column of the dataframe. In the example below I first extract the index where the `SOVEREIGNT` column has the value `SWE` for Sweden. [Look up here](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3) what the 3-letter country code for your country of choice is.
 
 ```{r, message=FALSE, warning=FALSE}
-swe_index = which(all_countries$SOVEREIGNT == 'Sweden')
-sweden_sf = all_countries[swe_index,1]
-sweden = as(sweden_sf, 'Spatial')
+selected_country_index = which(all_countries$SOVEREIGNT == 'Sweden')
+selected_country_sf = all_countries[selected_country_index,1]
+selected_country = as(selected_country_sf, 'Spatial')
 ```
 
 Now plot the data points on the map of your country:
 
 ```{r, message=FALSE, warning=FALSE}
-plot(sweden,main='Occurrences of Golden Eagle',axes=T)
-plot(eagle_data_spatial,add=T)
+plot(selected_country,main='Occurrences of selected species',axes=T)
+plot(species_occurrences,add=T)
 ```
 
 ### Count occurrences per grid cell
-Now convert the country polygon into a raster and then count for each cell the number of occurrences of your species of choice. 
+Now convert the country polygon into a raster and then count for each cell the number of occurrences of your species of choice. This will give you an idea where the species occurs in higher densities. 
 
-When using the `raster()` function you can set the resolution (in degrees int his case) to any value you like. The smaller the value, the smaller the cells and hence the more cells are being produced.
+When using the `raster()` function you can set the resolution (in degrees in this case) to any value you like. The smaller the value, the smaller the cells and hence the more cells are being produced.
 
-Then use the `rasterize()` function to rasterize the point data, providing the `SpatialPoints` object followed by the `raster` object, followed by the formula of what needs to be done (`fun=`), in our case you can use the keyword `'count'`, which will count the number of points that fall within each cell.
+Then use the `rasterize()` function to rasterize the point data, which will count how many points fall into each cell. You can do this by calling the `rasterize()` function and providing the `SpatialPoints` object followed by the `raster` object. You also need to tell the function what needs to be done using the `fun=` settings, in our case you can use the keyword `'count'`, which will count the number of points that fall within each cell.
 
 ```{r, message=FALSE, warning=FALSE}
 library(raster)
-raw_raster <- raster(sweden,resolution=0.4)
-counts_per_cell = rasterize(eagle_data_spatial,raw_raster,fun='count')
+raw_raster <- raster(selected_country,resolution=0.5)
+counts_per_cell = rasterize(species_occurrences,raw_raster,fun='count')
 ```
 
-Plot the resulting raster values:
+<div class="alert alert-block alert-warning">
+Task: Plot the resulting raster values of occurrence counts per cell and the polygon of your target country on top.
+</div>
 
-```{r, message=FALSE, warning=FALSE}
-plot(counts_per_cell, main='Registered occurrences of Golden Eagle')
-plot(sweden,add=T)
+
+```{r, message=FALSE, warning=FALSE, echo=False}
+plot(counts_per_cell, main='Registered occurrences of target species')
+plot(selected_country,add=T)
 ```
 
 ## B) Plotting mammal diversity
 
 In the exercise above we counted the number of occurrence points for each cell of a given raster. Now we are going to use the information of many individual presence/absence rasters (cells coded as 1 or 0) for all mammal species and add the values in each cell across all rasters in order to plot a map of global mammal diversity.
 
-As input data we are going to use the "present natural" rasters, produced by a recent study by Faurby et al, 2015 ('Historic and prehistoric human-driven extinctions have reshaped global mammal diversity patterns'). In this study the authors modeled ranges of each species under a scenario of no human disturbance (where would species occur if no humans were present).
+As input data we are going to use the "present natural" rasters, produced by a recent study by Faurby et al, 2015 ('Historic and prehistoric human-driven extinctions have reshaped global mammal diversity patterns'), who will also be teaching during this course. In this study the authors modeled ranges of each mammal species under a scenario of no human disturbance (i.e. where would species most likely occur if no humans were present).
 
 The raster files can be found in `./data/present_natural_converted/`. There is one separate raster file per species and in the raster each cell is coded as 0 (species absent) or 1 (species present). Since we can just add values across different rasters, we can simply iterate through all raster files (using a `for(){}` loop) and keep adding them up, which will give us the total diversity for each cell. **This will take approx. 5 minutes!**
 

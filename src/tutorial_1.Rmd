@@ -265,9 +265,9 @@ values(rast) = raster_values
 plot(rast)
 ```
 
-And just because we can, and to demonstrate that the coordinate systems of our created raster and our previously defined spatial vector object match, let's plot the spatial polygon `pols`and the spatial points `pts` on top of the raster. Tip: you can use `add=T` in the plot command to add additional layers on top of an existing plot without replacing the previous plot. That way you can add multiple elements into the same plot.
-
-The final plot should look like this:
+<div class="alert alert-block alert-warning">
+**Task:** Just because we can, and to demonstrate that the coordinate systems of our created raster and our previously defined spatial vector object match, let's plot the spatial polygon `pols`and the spatial points `pts` on top of the raster. Tip: you can use `add=T` in the plot command to add additional layers on top of an existing plot without replacing the previous plot. That way you can add multiple elements into the same plot. The final plot should look like the one below.
+</div>
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 values(rast) <- raster_values
@@ -294,10 +294,12 @@ library(sf)
 germany = st_read('../data/DEU_adm/DEU_adm0.shp')
 ```
 
-The object that is created by the `st_read()` function is a feature collection in `sf` format. You don;t need to bother fully understanding this format for our purposes, but instead we will just turn it into the now familiar `SpatialPolygon` format. You can do this by using the command `as(my_object, 'Spatial')`, where `my_object` in this case is our `sf` object called `germany`:
+The object that is created by the `st_read()` function is a feature collection in `sf` format. You don;t need to bother fully understanding this format for our purposes, but instead we will just turn it into the now familiar `SpatialPolygons` format (`SpatialPolygonsDataFrame` to be precise, which we'll look at a bit closer below). You can do this by using the command `as(my_object, 'Spatial')`, where `my_object` in this case is our `sf` object called `germany`:
 
 ```{r, message=FALSE, warning=FALSE}
 germany_spatial = as(germany, 'Spatial')
+germany_spatial
+(germany_spatial)
 ```
 
 Now let's plot the polygon object we just created:
@@ -313,7 +315,9 @@ germany_alt_raster = raster('../data/DEU_alt/deu_alt.grd')
 plot(germany_alt_raster,main='Altitude in meters above sea level')
 ```
 
-The raster is a rectangular grid filled with values (just as we did manually for the random value raster earlier in the tutorial(. Let's now plot the country borders of Germany (stored in the `germany_spatial` object) on top of the raster, just as you did before when plotting our hand-made polygon on top of the random value raster. Your plot should look like this:
+<div class="alert alert-block alert-warning">
+**Task:** The raster is a rectangular grid filled with values (just as we did manually for the random value raster earlier in the tutorial). Let's now plot the country borders of Germany (stored in the `germany_spatial` object) on top of the raster, just as you did before when plotting our hand-made polygon on top of the random value raster. Your plot should look like the one below.
+</div>
 
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 plot(germany_alt_raster)
@@ -326,244 +330,263 @@ The reason why plotting the country borders of Germany on top of the raster work
 
 
 ### 5. Working with vector data
-Now we are going to play around with a map of Luxembourg in order to demonstrate some of the basic polygon transformation and editing tools:
+Now we are going to play around with a map of Luxembourg in order to demonstrate some of the basic polygon transformation and editing tools.
+
+Let's first read the shape file and turn it into a spatial object, just as we did before for the Germany shape file:
 
 ```{r, message=FALSE, warning=FALSE}
 lux = st_read('../data/luxembourg/lux.shp')
-lux
 lux_spatial = as(lux, 'Spatial')
+lux_spatial
 ```
 
-<!-- You can see that the spatial object we loaded is made up by 12 polygons (lines), which are defined in the last column (`geometry`). There are five different values associated with each polygon which are stored in the columns `ID_1`,`NAME_1`,`ID_2`,`NAME_2`,`AREA`. When plotting the actual `sf` object `lux` (instead of the `SpatialPolygon` object `lux_spatial`), the default plotting function automatically puts out all layers and colors the polygons by their values: -->
+The shape object is formatted as a `SpatialPolygonsDataFrame`. Similarly to the `SpatialPointsDataFrame` from earlier in the tutorial, a `SpatialPolygonsDataFrame` contains a list of `SpatialPolygons`, as well as other data associated with these polygons. This could for example be the polygons of different regions within the country and the associated values could be things like name, population, size, etc. of these individual regions. You can see from the output of the above command (by just executing the name of the object: `lux_spatial`), that there are 12 features in this object. That means that this `SpatialPolygonsDataFrame` contains 12 different polygons, each based on it's own set of coordinates and associated with it's own data. You can see the names of the different data columns that are stored in the object using the `names()` function:
 
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- plot(lux,axes = T) -->
-<!-- ``` -->
+```{r, message=FALSE, warning=FALSE}
+names(lux_spatial)
+```
 
-<!-- We can select a single layer by using the respective index: -->
+There are five different values associated with each polygon which are stored in the columns `ID_1`,`NAME_1`,`ID_2`,`NAME_2`,`AREA`. When plotting the actual `sf` object `lux` (instead of the `SpatialPolygonDataFrame` object `lux_spatial`), the default plotting function automatically puts out all layers and colors the polygons by their values:
 
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- plot(lux[4],axes = T) -->
-<!-- ``` -->
+```{r, message=FALSE, warning=FALSE}
+plot(lux,axes = T)
+```
 
-<!-- We can extract the values of a specific column like this: -->
+You can see that e.g. `NAME_1` defines some larger regions, as several neighbouring polygons share the same value for that data column, while `NAME_2` seems to define the names of the polygons we have in our dataframe (more regional delimitations). We can select a single layer by using the respective index in square brackets `[]`:
 
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- lux$NAME_2 -->
-<!-- ``` -->
+```{r, message=FALSE, warning=FALSE}
+plot(lux[4],axes = T)
+```
 
-<!-- In some cases you may want to add a column of additional values to the polygon object, e.g. if you want to code which of these regions you have sampled (`1` stands for samples and `0` stands for not sampled): -->
+We can extract the values of a specific column like this:
 
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- new_values = c(0,1,1,0,1,0,1,1,0,0,0,1) -->
-<!-- lux$sampled_regions = new_values -->
-<!-- plot(lux['sampled_regions'],axes = T) -->
-<!-- ``` -->
+```{r, message=FALSE, warning=FALSE}
+lux$NAME_2
+```
 
-<!-- You can easily remove the column you just added above, using this command -->
+In some cases you may want to add a column of additional values to the polygon object, e.g. if you want to code which of these regions you have sampled (`1` stands for sampled and `0` stands for not sampled):
 
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- lux$sampled_regions <- NULL -->
-<!-- ``` -->
+```{r, message=FALSE, warning=FALSE}
+new_values = c(0,1,1,0,1,0,1,1,0,0,0,1)
+lux$sampled_regions = new_values
+plot(lux['sampled_regions'],axes = T)
+```
 
-<!-- But for now let's add the new column again and selectively only plot those areas that have not yet been sampled. We can do that by finding the indexes `i` for the regions where our new column has the value 0 and then extracting all of those rows from the spatial data object: -->
+You can easily remove the column you just added above, using this command
 
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- new_values = c(0,1,1,0,1,0,1,1,0,0,0,1) -->
-<!-- lux$sampled_regions = new_values -->
-<!-- i <- which(lux$sampled_regions == 0) -->
-<!-- g <- lux[i,] -->
-<!-- plot(g['sampled_regions'],main='Unsampled areas',axes = T) -->
-<!-- ``` -->
+```{r, message=FALSE, warning=FALSE}
+lux$sampled_regions <- NULL
+```
 
-<!-- ### Creating raster over polygon and convert raster back to polygon -->
-<!-- Let's say we want to divide our polygon into 4 equally sized cells. To do this we first need to rasterize the polygon data and then convert the raster back to polygon. -->
+But for now let's add the new column again and selectively only plot those areas that have not yet been sampled. We can do that by finding the indexes `i` for the regions where our new column has the value 0 (using the `which()` function and then extracting all of those rows from the spatial data object:
 
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- z <- raster(lux_spatial, nrow=2, ncol=2, vals=1:4) -->
-<!-- z <- as(z, 'SpatialPolygonsDataFrame') -->
-<!-- plot(lux['geometry'],axes = T) -->
-<!-- plot(z, add=TRUE, border='blue', lwd=5) -->
-<!-- ``` -->
+```{r, message=FALSE, warning=FALSE}
+new_values = c(0,1,1,0,1,0,1,1,0,0,0,1)
+lux$sampled_regions = new_values
+i <- which(lux$sampled_regions == 0)
+g <- lux[i,]
+plot(g['sampled_regions'],main='Unsampled areas',axes = T)
+```
 
-<!-- There are several useful functions when working with polygons, e.g. the `aggregate()` function, which can be used to join polygons based on their values. Let's use that function to join the area polygons by their vallues in the `NAME_1` column: -->
+### Creating raster over polygon and convert raster back to polygon
+Let's say we want to divide our Luxembourg polygon into 4 equally sized cells. The easiest way to do this is to define a raster with 4 cells that encompasses the whole polygon. You cna actually provide the raster function with a spatial polygon and it will automatically create a raster using the bounding box coordinates fo the polygon (note that we are using the spatial object `lux_spatial` again, not the sf object `lux`):
 
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- lux_spatial = as(lux, 'Spatial') -->
-<!-- counties = aggregate(lux_spatial, by='NAME_1') -->
-<!-- plot(counties, col=rainbow(3), lwd=3, border='white',axes = T) -->
-<!-- ``` -->
-
-<!-- Polygons are also really handy when it comes to operations with the overlap of multiple spatial objects. E.g. we can remove the overlap between two polygons using the `erase()` functions. Here we remove the overlap between the map of Luxembourg and the second field cell from our grid that we defined above: -->
-
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- e <- erase(lux_spatial, z[2,]) -->
-<!-- plot(e,axes = T) -->
-<!-- ``` -->
-
-<!-- The `intersect()` function on the other hand does basically the opposite and keeps only what's shared between two polygons. Using this function we can e.g. extract the part of the map of Luxembourg that falls into our second cell of the made-up grid: -->
-
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- i <- intersect(lux_spatial, z[2,]) -->
-<!-- plot(i,axes = T) -->
-<!-- ``` -->
-
-<!-- We can also simply define a rectangle (here we made up some coordinates that are within the range of the coordinate system of the map) and extract the region that it covers. We can use the `crop()` (or the `intersect()`) function to extract the region and here we plot it in a different color to the rest of the map. -->
-
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- e <- extent(6, 6.4, 49.7, 50) -->
-<!-- pe <- crop(lux_spatial, e) -->
-<!-- plot(lux_spatial,axes = T) -->
-<!-- plot(pe, col='light blue', add=TRUE) -->
-<!-- plot(e, add=TRUE, lwd=3, col='red') -->
-<!-- ``` -->
-
-<!-- Another polygon-overlap function is the `union()` function, which can be used to join two spatial objects. As you can see in the plot below, this function creates new polygon objects from the parent objects which are defined by the borders of both of the parents. E.g. a region that was defined within out `lux_spatial` object is split into two, if an edge of the vectorized grid-object `z` runs through it: -->
-
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- u <- union(lux_spatial, z) -->
-<!-- u -->
-<!-- set.seed(5) -->
-<!-- plot(u,col=sample(rainbow(length(u))),axes = T) -->
-<!-- ``` -->
-
-<!-- The `cover()` function is a combination between the `intersect()` and `union()` functions. It takes the outer boundary of the polygon of the first object and intersects it with the second object, defining new polygons based on the intersect. -->
-
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- cov <- cover(lux_spatial, z) -->
-<!-- cov -->
-<!-- plot(cov,axes = T) -->
-<!-- ``` -->
-
-<!-- ### Spatial queries -->
-<!-- Let's define a set of 5 points and then check which of the polygons they fall into. First we define the points and convert them into a `SpatialPoints` object: -->
-
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- pts <- matrix(c(6, 6.1, 5.9, 5.7, 6.4, 50, 49.9, 49.8, 49.7, 49.5), ncol=2) -->
-<!-- pts -->
-<!-- spts <- SpatialPoints(pts, proj4string=crs(lux_spatial)) -->
-<!-- plot(lux_spatial, col='blue', lwd=2,axes=T) -->
-<!-- points(spts, col='light gray', pch=20) -->
-<!-- text(spts, 1:nrow(pts), col='red', cex=1.5,pos=4) -->
-<!-- ``` -->
-
-<!-- Now we can use the `over()` function in order to check if and where each point in our `SpatialPoints` object intersects with the `lux_spatial` polygon: -->
-
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- my_over_output = over(spts, lux_spatial) -->
-<!-- my_over_output -->
-<!-- ``` -->
-
-<!-- <div class="alert alert-block alert-warning"> -->
-<!-- **Task:** Plot only the regions that contain a point, using any combination of the functions that we used in the previous steps. The final plot should look like the one below: -->
-<!-- </div> -->
-
-<!-- <div class="alert alert-block alert-success"> -->
-<!-- Tip: Depending on how familiar you are with R or other programming languages, you may be able to do this without the instructions below. Maybe first give it a shot and if you get stuck, have a look at the instructions below. -->
-
-<!-- One approach would be: -->
-
-<!-- 1. Extract a list of target region names from the `over()` function output (make sure you extract a data column that enables you to uniquely identify each region). You extract a specific data column using the `$column_name` notation following the name of the object, e.g. `my_over_output$ID_1` extracts the column `ID_1` from the `my_over_output` object.  -->
-
-<!-- 2. Identify which of the lines in the `lux_spatial` object match this list of target regions. You can use the `which()` function to determine the indeces (line numbers) that fulfil a given requirement. In order to define a requirement you can use the `%in%` notation to test which elements from one list match with elements from another, e.g. `which(lux_spatial$NAME_2 %in% my_list_of_target_regions)` returns the indeces of those polygons, whose name is present in the list `my_list_of_target_regions`. -->
-
-<!-- 3. Extract the target polygons from the `lux_spatial` object. Use the indeces that where produced by the `which()` command to index the polygons you which to extract, e.g. `lux_spatial[list_indeces,]` extracts all indeces present in the list `list_indeces`. -->
-
-<!-- </div> -->
-
-<!-- ```{r, message=FALSE, warning=FALSE,echo=FALSE} -->
-<!-- i <- which(lux_spatial$NAME_2 %in% over(spts, lux_spatial)$NAME_2) -->
-<!-- g <- lux_spatial[i,] -->
-
-<!-- plot(g, col='blue', lwd=2,axes=T) -->
-<!-- points(spts, col='light gray', pch=20) -->
-<!-- text(spts, 1:nrow(pts), col='red', cex=1.5,pos=4) -->
-<!-- ``` -->
-
-<!-- ### 6. Working with raster data -->
-<!-- It's rather straight-forward to generate a raster in R. As we did earlier in this tutorial we can just create a raster by using the `raster()` command and specifying the number of cells and extent in x and y direction. Remember that this command only creates the skeleton (empty raster). Here we just fill these cells with random numbers between 0 and 1 using the `runif()` command. -->
-
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- x <- raster(ncol=36, nrow=18, xmn=-1000, xmx=1000, ymn=-100, ymx=900) -->
-<!-- values(x) <- runif(ncell(x)) -->
-<!-- plot(x) -->
-<!-- ``` -->
-
-<!-- You can check the resolution of the raster (dimensions of each cell) using the `res()` command: -->
-
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- res(x) -->
-<!-- ``` -->
-
-<!-- You can change the resolution of the raster. Let's change it to `1`: -->
-
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- res(x) <- 1 -->
-<!-- values(x) <- runif(ncell(x)) -->
-<!-- plot(x) -->
-<!-- ``` -->
-
-<!-- We can access the coordinate projection of the raster using the `projection()` function and can assign a value to it (see [this link from earlier](http://rspatial.org/spatial/rst/6-crs.html) to check again the notation for different coordinate reference systems). There will be a more thorough explanation of how to decide which projection to assign to your spatial object in the [empirical data tutorial](./empirical_data_tutorial.ipynb). -->
-
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- projection(x) <- "+proj=utm +zone=48 +datum=WGS84" -->
-<!-- projection(x) -->
-<!-- ``` -->
-
-<!-- Summary of some useful basic raster commands: -->
-
-<!-- - **res()** - access the raster resolution (cell dimensions) -->
-<!-- - **projection()** - access the coordinate projection of the raster -->
-<!-- - **ncell()** - access the number of cells in the raster -->
-<!-- - **ncol()** - access the number of columns in the raster -->
-<!-- - **dim()** - access the dimension of the raster (cells in x and y direction) -->
-<!-- - **values()** - access the values stored in the raster cells -->
-<!-- - **hasValues()** - check if raster contains values or if it's just an empty skeleton -->
-<!-- - **xmax()** - access the maximum x value -->
-<!-- - **xmin()** - ... -->
-<!-- - **ymax()** - ... -->
-<!-- - **ymin()** - ... -->
-
-<!-- We can stack multiple rasters into the same object by using the `stack()` command. Here we define 3 rasters with random numbers and stack them: -->
-
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- r1 <- r2 <- r3 <- raster(nrow=10, ncol=10) -->
-
-<!-- # Assign random cell values -->
-<!-- values(r1) <- runif(ncell(r1)) -->
-<!-- values(r2) <- runif(ncell(r2)) -->
-<!-- values(r3) <- runif(ncell(r3)) -->
-
-<!-- s <- stack(r1, r2, r3) -->
-<!-- plot(s) -->
-<!-- ``` -->
-
-<!-- #### Algebraic operations with rasters  -->
-<!-- Rasters are very straightforward to work with, since they allow the use of simple algebraic operators such as +, -, \*, /, as well as logical operators such as >, >=, <, ==, !. -->
-
-<!-- For example if we want to add the values across all 3 rasters from above we can simply do that like this: -->
+```{r, message=FALSE, warning=FALSE}
+z <- raster(lux_spatial, nrow=2, ncol=2, vals=1:4)
+plot(z)
+plot(lux_spatial,add=T)
+```
 
 
-<!-- ```{r, message=FALSE, warning=FALSE} -->
-<!-- sum_rasters = r1 + r2 + r3 -->
-<!-- # or: -->
-<!-- sum_rasters = sum(r1, r2, r3) -->
+You can turn the grid of the raster into a spatial object itself, using the `as()` function, just as we did for the sf objects before. Let's do that and plot it on top of the Luxembourg polygon:
 
-<!-- plot(sum_rasters) -->
+```{r, message=FALSE, warning=FALSE}
+z_spatial = as(z, 'SpatialPolygonsDataFrame')
+plot(lux_spatial,axes = T)
+plot(z_spatial, add=TRUE, border='blue', lwd=5)
+```
 
-<!-- ``` -->
+There are several useful functions when working with polygons, e.g. the `aggregate()` function, which can be used to join polygons based on their values. Let's use that function to join the area polygons by their values in the `NAME_1` column (larger regions):
 
-<!-- ### Vector to raster conversion -->
+```{r, message=FALSE, warning=FALSE}
+counties = aggregate(lux_spatial, by='NAME_1')
+plot(counties, col=c('blue','red','orange'), lwd=3, border='black',axes = T)
+```
 
-<!-- The raster packages supports point, line, and polygon to raster conversion with the `rasterize()` function. For vector type data (points, lines, polygons), objects of `Spatial*` classes defined in the sp package are used; but points can also be represented by a two-column matrix (x and y). -->
+We can also determine the overlap of multiple spatial objects. E.g. we can remove the overlap between two polygons using the `erase()` functions. Here we remove the overlap between the map of Luxembourg and the second cell from our grid that we defined above:
 
-<!-- #### Points to raster -->
-<!-- Point to raster conversion is often done with the purpose to analyze the point data. For example to count the number of distinct species (represented by point observations) that occur in each raster cell. rasterize takes a Raster object to set the spatial extent and resolution, and a function to determine how to summarize the points (or an attribute of each point) by cell. -->
+```{r, message=FALSE, warning=FALSE}
+e <- erase(lux_spatial, z_spatial[2,])
+plot(e,axes = T)
+```
 
-<!-- #### Polygons to raster -->
-<!-- Polygon to raster conversion is typically done to create a `RasterLayer` that can act as a mask, i.e. to set to `NA` a set of cells of a raster object, or to summarize values on a raster by zone. For example a country polygon is transferred to a raster that is then used to set all the cells outside that country to `NA`. -->
+The `intersect()` function on the other hand does basically the opposite and keeps only what's shared between two polygons. Using this function we can e.g. extract the part of the map of Luxembourg that falls into our second cell of the made-up grid:
 
-<!-- We will use examples of this in the [next tutorial](./tutorial_2.html), using real data. -->
+```{r, message=FALSE, warning=FALSE}
+i <- intersect(lux_spatial, z_spatial[2,])
+plot(i,axes = T)
+```
+
+We can also simply define a rectangle (here we made up some coordinates that are within the range of the coordinate system of the Luxembourg) and extract the region covered by that rectangle. We can use the `crop()` (or the `intersect()`) function to extract the region covered by the rectangle. We define this to a separate variable (`pe`) and then plot it in a different color on top of the rest of the map (in blue). Add the end we also plot the actual rectangle on top of everything (in red).
+
+```{r, message=FALSE, warning=FALSE}
+e <- extent(6, 6.4, 49.7, 50)
+pe <- crop(lux_spatial, e)
+plot(lux_spatial,axes = T)
+plot(pe, col='light blue', add=TRUE)
+plot(e, add=TRUE, lwd=3, col='red')
+```
+
+Another polygon-overlap function is the `union()` function, which can be used to merge the spatial information stored in two spatial objects. As you can see in the plot below, this function creates new polygon objects from the two input objects which are defined by the borders of both of these objects. E.g. a region that was defined within out `lux_spatial` object is split into two, if an edge of the vectorized grid-object `z_spatial` runs through it.
+
+
+```{r, message=FALSE, warning=FALSE}
+u <- union(lux_spatial, z_spatial)
+u
+```
+
+You can see that this created 28 different polygons (compared to the 12 we had before). To make them better visible let's plot them in different colors.
+
+<div class="alert alert-block alert-success">
+**Assigning random colors:** When you have a bunch of different polygons stored in a `SpatialPolygonsDataFrame` object and you want to plot them all in different colors, it can be quite painstaking to manually define colors for each and single one of them. An easy way around that is to use a random color generator. E.g. you can sample 100 random colors from the whole color spectrum using the `sample(rainbow(100))` command. If you want to use this to assign colors to polygons in a `SpatialPolygonsDataFrame` the lost of colors needs to have the same length as the number of polygons in your dataframe. To achieve this you can use the `length()` function to get the exact number of polygons in your spatial object: `sample(rainbow(length(name_of_spatial_object)))` 
+</div>
+
+
+```{r, message=FALSE, warning=FALSE}
+plot(u,col=sample(rainbow(length(u))),axes = T)
+```
+
+The `cover()` function is a combination between the `intersect()` and `union()` functions. It takes the outer boundary of the polygon of the first object and intersects it with the second object, defining new polygons based on the intersect.
+
+```{r, message=FALSE, warning=FALSE}
+cov <- cover(lux_spatial, z_spatial)
+cov
+plot(cov,axes = T)
+```
+
+### Spatial queries
+Let's define a set of 5 points and then check which of the polygons they fall into. First we define the points and convert them into a `SpatialPoints` object:
+
+```{r, message=FALSE, warning=FALSE}
+lon = c(6, 6.1, 5.9, 5.7, 6.4)
+lat = c(50, 49.9, 49.8, 49.7, 49.5)
+pts <- cbind(lon,lat)
+pts
+spts <- SpatialPoints(pts)
+plot(lux_spatial, col='blue', lwd=2,axes=T)
+points(spts, col='light gray', pch=20)
+text(spts, c(1,2,3,4,5), col='red', cex=1.5,pos=4)
+```
+
+Now we can use the `over()` function in order to check if and where each point in our `SpatialPoints` object intersects with the `lux_spatial` polygon. The function will return a dataframe that shows for each point the values of the intersecting polygon dataframe. It will return the value `NA` for all data columns if the point did not match any of the polygon
+
+The `over()` function will complain if the two objects don't have the same assigned coordinate reference system (CRS). We therefore first need to assign the correct coordinate reference system to the `SpatialPoints` object by using the `proj4string=` setting in the `SpatialPoints()` command. We will assign the same reference system as the Luxembourg shape object, which we can call by using the `crs()` function.
+
+```{r, message=FALSE, warning=FALSE}
+spts <- SpatialPoints(pts, proj4string=crs(lux_spatial))
+my_over_output = over(spts, lux_spatial)
+my_over_output
+```
+
+<div class="alert alert-block alert-warning">
+**Task:** Plot only the regions that contain a point, based on the `over()` output. The final plot should look like the one below:
+</div>
+
+<div class="alert alert-block alert-success">
+Tip: Depending on how familiar you are with R or other programming languages, you may be able to do this without the instructions below. Maybe first give it a shot and if you get stuck, have a look at the instructions below.
+
+One approach would be:
+
+1. Extract the list of region names of the matching polygons from the `over()` function output (make sure you extract a data column that enables you to uniquely identify each region). You extract a specific data column using the `$column_name` notation following the name of the object, e.g. `my_over_output$ID_1` extracts the column `ID_1` from the `my_over_output` object.
+
+2. Identify which of the polygons in the `lux_spatial` object match this list of target regions. You can use the `which()` function to determine the polygon indeces that fulfil a given requirement. In order to define a requirement you can use the `%in%` notation to test which elements from one list match with elements from another, e.g. `which(lux_spatial$NAME_2 %in% my_list_of_target_regions)` returns the indeces of those polygons, whose name is present in the list `my_list_of_target_regions`.
+
+3. Extract the target polygons from the `lux_spatial` object. Use the indeces that where produced by the `which()` command to index the polygons you want to extract, e.g. `lux_spatial[list_indeces,]` extracts all indeces present in the list `list_indeces`.
+
+</div>
+
+```{r, message=FALSE, warning=FALSE,echo=FALSE}
+target_regions = over(spts, lux_spatial)$NAME_2
+i <- which(lux_spatial$NAME_2 %in% target_regions)
+g <- lux_spatial[i,]
+
+plot(g, col='blue', lwd=2,axes=T)
+points(spts, col='light gray', pch=20)
+text(spts, 1:nrow(pts), col='red', cex=1.5,pos=4)
+```
+
+### 6. Working with raster data
+It's rather straight-forward to generate a raster in R. As we did earlier in this tutorial we can just create a raster by using the `raster()` command and specifying the number of cells and extent in x and y direction. Remember that this command only creates the skeleton (empty raster). Here we just fill these cells with random numbers between 0 and 1 using the `runif()` command.
+
+```{r, message=FALSE, warning=FALSE}
+x <- raster(ncol=36, nrow=18, xmn=-1000, xmx=1000, ymn=-100, ymx=900)
+values(x) <- runif(ncell(x))
+plot(x)
+```
+
+You can check the resolution of the raster (dimensions of each cell) using the `res()` command:
+
+```{r, message=FALSE, warning=FALSE}
+res(x)
+```
+
+It turns out each of our cells has the size 55.5x55.5, i.e. it covers 55.5 units on the x-axis and 55.5 untis on the y-axis. You can change the resolution of the raster. Let's change it to `1`, which will lead to many more cells in the raster, as the cells will now only have the size 1x1 and fill the cells with random values.
+
+```{r, message=FALSE, warning=FALSE}
+res(x) <- 1
+values(x) <- runif(ncell(x))
+plot(x)
+```
+
+We can access the coordinate projection of the raster using the `projection()` function and can assign a value to it (see [this link from earlier](http://rspatial.org/spatial/rst/6-crs.html) to check again the notation for different coordinate reference systems). There will be a more thorough explanation of how to decide which projection to assign to your spatial object in the next tutorial.
+
+```{r, message=FALSE, warning=FALSE}
+projection(x) <- "+proj=utm +zone=48 +datum=WGS84"
+projection(x)
+```
+
+Summary of some useful basic raster commands:
+
+- **res()** - access the raster resolution (cell dimensions)
+- **projection()** - access the coordinate projection of the raster
+- **ncell()** - access the number of cells in the raster
+- **ncol()** - access the number of columns in the raster
+- **dim()** - access the dimension of the raster (cells in x and y direction)
+- **values()** - access the values stored in the raster cells
+- **hasValues()** - check if raster contains values or if it's just an empty skeleton
+- **xmax()** - access the maximum x value
+- **xmin()** - ...
+- **ymax()** - ...
+- **ymin()** - ...
+
+We can stack multiple rasters into the same object by using the `stack()` command. Here we define 3 rasters with random numbers and stack them:
+
+```{r, message=FALSE, warning=FALSE}
+r1 <- r2 <- r3 <- raster(nrow=10, ncol=10)
+
+# Assign random cell values
+values(r1) <- runif(ncell(r1))
+values(r2) <- runif(ncell(r2))
+values(r3) <- runif(ncell(r3))
+
+s <- stack(r1, r2, r3)
+plot(s)
+```
+
+#### Algebraic operations with rasters
+Rasters are very straightforward to work with, since they allow the use of simple algebraic operators such as +, -, \*, /, as well as logical operators such as >, >=, <, ==, !.
+
+For example if we want to add the values across all 3 rasters from above we can simply do that like this:
+
+
+```{r, message=FALSE, warning=FALSE}
+sum_rasters = r1 + r2 + r3
+# or:
+sum_rasters = sum(r1, r2, r3)
+plot(sum_rasters)
+```
+
+Congratulations, you made it through the first tutorial! Here you can move on to the [next tutorial](./tutorial_2.html), using real data.
 
 
 
