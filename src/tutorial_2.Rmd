@@ -121,16 +121,16 @@ In the exercise above we counted the number of occurrence points for each cell o
 
 As input data we are going to use the "present natural" rasters, produced by a recent study by Faurby et al, 2015 ('Historic and prehistoric human-driven extinctions have reshaped global mammal diversity patterns'), who will also be teaching during this course. In this study the authors modeled ranges of each mammal species under a scenario of no human disturbance (i.e. where would species most likely occur if no humans were present).
 
-The data is available via the [Phylacine database](https://megapast2future.github.io/PHYLACINE_1.2/). Click on the link in the 'Download the data' section to start the download. Unzip the downloaded file and copy it into your data folder that you downloaded from the course GutHub repo. The raster data we're after is stored in the `Data 2/Ranges/Present_natural/` folder (Windows users remmeber to replace all `/` with `\\`). You can see all files that are present in that folder using the `list.files()` command:
+The data is available via the [Phylacine database](https://megapast2future.github.io/PHYLACINE_1.2/). Click on the link in the 'Download the data' section to start the download. Unzip the downloaded file and copy it into your data folder that you downloaded from the course GutHub repo. The raster data we're after is stored in the `Data_2/Ranges/Present_natural/` folder (Windows users remmeber to replace all `/` with `\\`). You can see all files that are present in that folder using the `list.files()` command:
 
 ```{r, message=FALSE, warning=FALSE}
-species_ranges=list.files('../data/Data 2/Ranges/Present_natural/')
+species_ranges=list.files('../data/Data_2/Ranges/Present_natural/')
 ```
 
 The folder contains a separate raster file for each species. To read a raster file we can just use the `raster()` function and the file name. For example we can just select the first filename from our `species_ranges` list of files using `species_ranges[1]`. To actually find the file we need to join the filename with the path of the folder it's stored in, which we can do with the command `paste0()` that allows you to join to strings:
 
 ```{r, message=FALSE, warning=FALSE}
-filepath = paste0('../data/Data 2/Ranges/Present_natural/',species_ranges[1])
+filepath = paste0('../data/Data_2/Ranges/Present_natural/',species_ranges[1])
 raster = raster(filepath)
 plot(raster)
 ```
@@ -142,9 +142,9 @@ Reading all raster files will take quite a while (~ 30 min). If you don't have t
 ```{r, message=FALSE, warning=FALSE, cache=TRUE}
 library(raster)
 species_ranges = sample(species_ranges,500)
-merged_rasters = raster(paste0('../data/Data 2/Ranges/Present_natural/',species_ranges[1]))
+merged_rasters = raster(paste0('../data/Data_2/Ranges/Present_natural/',species_ranges[1]))
 for (i in species_ranges[2:length(species_ranges)]){
-    species_raster=raster(paste0('../data/Data 2/Ranges/Present_natural/',i))
+    species_raster=raster(paste0('../data/Data_2/Ranges/Present_natural/',i))
     merged_rasters = merged_rasters+species_raster
     }
 ```
@@ -290,12 +290,12 @@ species_data = st_read('../data/redlist_species_data_e5f54e49-d2e2-4f2e-ae85-1af
 
 
 ### Get species present natural raster
-The present natural raster files are stored at `../data/Data 2/Ranges/Present_natural/`. To find the raster file of a specific species you can use a combination of the gsub command (which will replace the space with a '_' in the species name) and the paste0 command (which you can use to paste the .tif file ending to the file and to join the filename with the path to the folder):
+The present natural raster files are stored at `../data/Data_2/Ranges/Present_natural/`. To find the raster file of a specific species you can use a combination of the gsub command (which will replace the space with a '_' in the species name) and the paste0 command (which you can use to paste the .tif file ending to the file and to join the filename with the path to the folder):
 
 ```{r, message=FALSE, warning=FALSE}
 species = 'Loxodonta africana'
 filename = gsub(" ", "_", species)
-file_path = paste0('../data/Data 2/Ranges/Present_natural/',filename,'.tif')
+file_path = paste0('../data/Data_2/Ranges/Present_natural/',filename,'.tif')
 species_prenat_raster = raster(file_path)
 ```
 
@@ -310,7 +310,7 @@ species_polygons = st_read('../data/redlist_species_data_e5f54e49-d2e2-4f2e-ae85
 
 # get raster
 filename = gsub(" ", "_", species)
-file_path = paste0('../data/Data 2/Ranges/Present_natural/',filename,'.tif')
+file_path = paste0('../data/Data_2/Ranges/Present_natural/',filename,'.tif')
 species_prenat_raster = raster(file_path)
 
 
