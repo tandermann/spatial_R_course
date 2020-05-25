@@ -52,7 +52,7 @@ name_suggest(q=taxon_name)
 ### 3. Check taxonomic information
 Now we use the `name_lookup()` function of the rgbif package to check if our picked taxon exists in the chosen GBIF backbone taxonomy and what information is stored with it.
 In order for the function to find our taxon in the taxonomy, we need to provide the rank that the taxon name represents (is it a subspecies, species, genus, or family name?). We can extract the correct rank classification from the results of the `name_suggest()` function as shown above. In this example we're working with a taxon name that is on the species level. Accepted ranks are:
-`CLASS, CULTIVAR, CULTIVAR_GROUP, DOMAIN, FAMILY, FORM, GENUS, INFORMAL, INFRAGENERIC_NAME, INFRAORDER, INFRASPECIFIC_NAME, INFRASUBSPECIFIC_NAME, KINGDOM, ORDER, PHYLUM, SECTION, SERIES, SPECIES, STRAIN, SUBCLASS, SUBFAMILY, SUBFORM, SUBGENUS, SUBKINGDOM, SUBORDER, SUBPHYLUM, SUBSECTION, SUBSERIES, SUBSPECIES, SUBTRIBE, SUBVARIETY, SUPERCLASS, SUPERFAMILY, SUPERORDER, SUPERPHYLUM, SUPRAGENERIC_NAME, TRIBE, UNRANKED, VARIETY`
+CLASS, CULTIVAR, CULTIVAR_GROUP, DOMAIN, FAMILY, FORM, GENUS, INFORMAL, INFRAGENERIC_NAME, INFRAORDER, INFRASPECIFIC_NAME, INFRASUBSPECIFIC_NAME, KINGDOM, ORDER, PHYLUM, SECTION, SERIES, SPECIES, STRAIN, SUBCLASS, SUBFAMILY, SUBFORM, SUBGENUS, SUBKINGDOM, SUBORDER, SUBPHYLUM, SUBSECTION, SUBSERIES, SUBSPECIES, SUBTRIBE, SUBVARIETY, SUPERCLASS, SUPERFAMILY, SUPERORDER, SUPERPHYLUM, SUPRAGENERIC_NAME, TRIBE, UNRANKED, VARIETY
 If you are uncertain about how to parse your taxon name into this function, check the helpfunction by executing `?name_lookup()` in R. Note that in the command below we are using the `datasetKey=nub` settings, which is the GBIF standard taxonomy we defined earlier.
 
 ```{r, message=FALSE, warning=FALSE}
@@ -314,14 +314,14 @@ theme(legend.position = "bottom")
 
 As a fun plotting exercise we will plot occurrence data on an interactive OpenStreetView map. The advantage of this is that the user can zoom in and out of the plot and explore large geographic extends in very high detail. Additionally the meta-data (additional values attached to each point, such as species name, etc) of each point can be viewed by clicking on the data point on the map. Let's download a multi species dataset, in this case I'm using a genus ID (genus_ID), which we assigned earlier in this tutorial in order to get multiple species occurrences.
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE,eval=F, echo=T}
 genus_records = occ_search(taxonKey=genus_ID, return="data", hasCoordinate=TRUE, limit=1000,country = 'SE')
 ```
 
 
-For plotting interactively we will use the map_leaflet() function as part of the mapr package:
+For plotting interactively we will use the map_leaflet() function as part of the mapr package (I'm not showing the plot here, because it messes up the html file)
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE,eval=F, echo=T}
 library(mapr) # rOpenSci r-package for mapping (occurrence data)
 map_leaflet(genus_records, lon="decimalLongitude", lat="decimalLatitude", size=5)
 ```
@@ -331,7 +331,7 @@ In the plot you can zoom in and out and you can click on individual points to se
 
 If you want to play around with different colors, there is a great package called RColorBrewer, which you can use to generate visually pleasing palettes of colors. You can check out the options you can choose from by using the help function `?colorRampPalette()`. Here we first determine the number of species in our data (in case we have several) and then parse it into the function to create a different color for each species.
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE,eval=F, echo=T}
 library('RColorBrewer')
 
 n_spp <- length(unique(genus_records$name)) # number of unique taxa in dataframe (USE spp$name, NOT spp$taxonKey)
