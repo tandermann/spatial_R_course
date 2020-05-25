@@ -1,5 +1,5 @@
 ---
-title: "Basic spatial R workshop - 2"
+title: "Spatial R course - 2"
 author: "Tobias Andermann"
 date: "5/24/2020"
 output:
@@ -30,17 +30,17 @@ Task: Choose your own species and country when going through the following steps
 </div>
 
 #### Getting the data
-Here we we use the R package `rgbif` to download occurrence data directly from GBIF into R. GBIF is a large central database that contains all kinds of species occurrence records. Let's see how many occurrences we can find for our target species in the country of our choice. You can use the `publishingCountry=` option to only extract occurrences from a given country. Another useful argument is `hasCoordinate = T`, which only allows records with valid coordinates. You can choose to only extract summary data `return =  "meta"` in order to first get an idea how many data points there are, before starting to download. This is recommendable because it can take a very long time to download tens of thousands of occurrences, so it's best to know beforehand what you are in for.
+Here we we use the R package `rgbif` to download occurrence data directly from GBIF into R. GBIF is a large central database that contains all kinds of species occurrence records. Let's see how many occurrences we can find for our target species in the country of our choice. You can use the `country=` option to only extract occurrences from a given country. Another useful argument is `hasCoordinate = T`, which only allows records with valid coordinates. You can choose to only extract summary data `return =  "meta"` in order to first get an idea how many data points there are, before starting to download. This is recommendable because it can take a very long time to download tens of thousands of occurrences, so it's best to know beforehand what you are in for.
 
 ```{r, message=FALSE, warning=FALSE, cache=TRUE}
 library(rgbif)
-occ_search(scientificName = "Aquila chrysaetos", publishingCountry='SE', hasCoordinate = T, return =  "meta")$count
+occ_search(scientificName = "Aquila chrysaetos", country='SE', hasCoordinate = T, return =  "meta")$count
 ```
 
 As you can see there are a lot of records in my case. What does it look like for your target species? Let's now download the actual data containing the coordinates for our target species by setting `return =  "data"`. For this exercise you can keep the number of data points in a managable range by setting a limit, e.g. `limit=5000`:
 
 ```{r, message=FALSE, warning=FALSE, cache=TRUE}
-golden_eagle <- occ_search(scientificName = "Aquila chrysaetos", publishingCountry='SE',hasCoordinate = T,return =  "data", limit = 5000)
+golden_eagle <- occ_search(scientificName = "Aquila chrysaetos", country='SE',hasCoordinate = T,return =  "data", limit = 5000)
 #library(tidyverse)
 #write_csv(x = golden_eagle, path = "../data/golden_eagle.csv")
 ```
@@ -121,16 +121,16 @@ In the exercise above we counted the number of occurrence points for each cell o
 
 As input data we are going to use the "present natural" rasters, produced by a recent study by Faurby et al, 2015 ('Historic and prehistoric human-driven extinctions have reshaped global mammal diversity patterns'), who will also be teaching during this course. In this study the authors modeled ranges of each mammal species under a scenario of no human disturbance (i.e. where would species most likely occur if no humans were present).
 
-The data is available via the [Phylacine database](https://megapast2future.github.io/PHYLACINE_1.2/). Click on the link in the 'Download the data' section to start the download. Unzip the downloaded file and copy it into your data folder that you downloaded from the course GutHub repo. The raster data we're after is stored in the `Data_2/Ranges/Present_natural/` folder (Windows users remmeber to replace all `/` with `\\`). You can see all files that are present in that folder using the `list.files()` command:
+The data is available via the [Phylacine database](https://megapast2future.github.io/PHYLACINE_1.2/). Click on the link in the 'Download the data' section to start the download. Unzip the downloaded file and copy it into your data folder that you downloaded from the course GutHub repo. The raster data we're after is stored in the `Data/Ranges/Present_natural/` folder (Windows users remmeber to replace all `/` with `\\`). You can see all files that are present in that folder using the `list.files()` command:
 
 ```{r, message=FALSE, warning=FALSE}
-species_ranges=list.files('../data/Data_2/Ranges/Present_natural/')
+species_ranges=list.files('../data/Data/Ranges/Present_natural/')
 ```
 
 The folder contains a separate raster file for each species. To read a raster file we can just use the `raster()` function and the file name. For example we can just select the first filename from our `species_ranges` list of files using `species_ranges[1]`. To actually find the file we need to join the filename with the path of the folder it's stored in, which we can do with the command `paste0()` that allows you to join to strings:
 
 ```{r, message=FALSE, warning=FALSE}
-filepath = paste0('../data/Data_2/Ranges/Present_natural/',species_ranges[1])
+filepath = paste0('../data/Data/Ranges/Present_natural/',species_ranges[1])
 raster = raster(filepath)
 plot(raster)
 ```
@@ -142,9 +142,9 @@ Reading all raster files will take quite a while (~ 30 min). If you don't have t
 ```{r, message=FALSE, warning=FALSE, cache=TRUE}
 library(raster)
 species_ranges = sample(species_ranges,500)
-merged_rasters = raster(paste0('../data/Data_2/Ranges/Present_natural/',species_ranges[1]))
+merged_rasters = raster(paste0('../data/Data/Ranges/Present_natural/',species_ranges[1]))
 for (i in species_ranges[2:length(species_ranges)]){
-    species_raster=raster(paste0('../data/Data_2/Ranges/Present_natural/',i))
+    species_raster=raster(paste0('../data/Data/Ranges/Present_natural/',i))
     merged_rasters = merged_rasters+species_raster
     }
 ```
@@ -290,12 +290,12 @@ species_data = st_read('../data/redlist_species_data_e5f54e49-d2e2-4f2e-ae85-1af
 
 
 ### Get species present natural raster
-The present natural raster files are stored at `../data/Data_2/Ranges/Present_natural/`. To find the raster file of a specific species you can use a combination of the gsub command (which will replace the space with a '_' in the species name) and the paste0 command (which you can use to paste the .tif file ending to the file and to join the filename with the path to the folder):
+The present natural raster files are stored at `../data/Data/Ranges/Present_natural/`. To find the raster file of a specific species you can use a combination of the gsub command (which will replace the space with a '_' in the species name) and the paste0 command (which you can use to paste the .tif file ending to the file and to join the filename with the path to the folder):
 
 ```{r, message=FALSE, warning=FALSE}
 species = 'Loxodonta africana'
 filename = gsub(" ", "_", species)
-file_path = paste0('../data/Data_2/Ranges/Present_natural/',filename,'.tif')
+file_path = paste0('../data/Data/Ranges/Present_natural/',filename,'.tif')
 species_prenat_raster = raster(file_path)
 ```
 
@@ -310,7 +310,7 @@ species_polygons = st_read('../data/redlist_species_data_e5f54e49-d2e2-4f2e-ae85
 
 # get raster
 filename = gsub(" ", "_", species)
-file_path = paste0('../data/Data_2/Ranges/Present_natural/',filename,'.tif')
+file_path = paste0('../data/Data/Ranges/Present_natural/',filename,'.tif')
 species_prenat_raster = raster(file_path)
 
 

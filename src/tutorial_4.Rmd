@@ -1,0 +1,234 @@
+---
+title: "Spatial R course - 4"
+author: "Tobias Andermann"
+date: "5/25/2020"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+## Accessing biodiveristy data through web services (IUCN)
+
+Dependencies:
+```{r, message=FALSE, warning=FALSE}
+library(rredlist)
+library(rworldmap)
+library(taxize)
+library(sp)
+```
+
+Some of you may run into issues installing these libraries (particularly the `taxize` package seems to not be workign with some R versions). If that's the case, you can run this tutorial in [this RStudio cloud session](https://rstudio.cloud/project/1310609), where I installed the necessary package. You can just work in that RStudio cloud, as you do on your Desktop RStudio. You may have to create an account first, but it's fast and for free.
+
+In this tutorial we will work with another r-package that can be used to download biodiversity data: The IUCN redlist package `rredlist`.
+
+The IUCN RedList is a collective work of many researchers and conservationists, which compile information about species population trends, habitats, and evaluations of all applicable threats. This information is used to assign a protection status to each species. You can find more information about the IUCN RedList [here](https://www.iucnredlist.org/).
+
+
+### 1. Get your API token
+
+In order to use this package you first need to apply for an API token. You can do that by filling out [this form here](https://apiv3.iucnredlist.org/api/v3/token).
+
+Since it is hard to predict how long it will take for IUCN to approve your token request (could be minutes or hours), you can get a key from me, just approach me if you're getting to this part of the tutorial and haven't received your token yet.
+
+Then store the API token as a string:
+
+```{r, message=FALSE, warning=FALSE}
+iucn_api = 'paste_your_iucn_token_here'
+```
+
+```{r, message=FALSE, warning=FALSE,echo=FALSE}
+iucn_api = '01524b67f4972521acd1ded2d8b3858e7fedc7da5fd75b8bb2c5456ea18b01ba'
+```
+
+**Extra info:** If you're interested you can store this key in your R environment. It's not necessary for this exercise but if you want you can check out the documentation of the functions `rl_use_iucn()` and `edit_r_environ()` by typing `?` followed by the function name.
+
+
+### 2. Pick a taxon and find synonyms
+
+Now you can again pick a species of your choice for which you want to extract species data (such as conservation status, distribution, etc), in this example we're working with the tiger Panthera tigris.
+
+```{r, message=FALSE, warning=FALSE}
+taxon_name <- "Panthera tigris" # tiger
+```
+
+
+We can check for synonyms of our species name, using the rl_synonyms() function:
+
+```{r, message=FALSE, warning=FALSE}
+rl_synonyms(taxon_name,key=iucn_api)
+```
+
+IUCN standardizes all its data to one main taxonomy, so you will not find any data associated with the synonyms outside of the accepted_name. Therefore make sure you continue working with the name listed in the `accepted_name` column.
+
+Similarly as before in the GBIF tutorial, we can extract popular names (vernacular names) associated with our chosen taxon in the IUCN database:
+
+```{r, message=FALSE, warning=FALSE}
+rl_common_names(taxon_name,key=iucn_api)
+```
+
+### 3. Habitat information
+
+The IUCN rredlist package offers several functions to extract information about the chosen taxon. You can check out the available functions and explanation in the official package documentation.
+
+For example we can extract information about the habitats the species is found in using the `rl_habitats()` function.
+
+```{r, message=FALSE, warning=FALSE}
+rl_habitats(taxon_name,key=iucn_api)
+```
+
+
+### 4. Threat status
+
+One of the most interesting and unique information IUCN has to offer are the RedList assessments. Each species is classified into either one of the following categories:
+
+- Least Concern (LC)
+- Near threatened (NT)
+- Vulnerable (VU)
+- Endangered (EN)
+- Critically endangered (CR)
+- Extinct in the wild (EW)
+- Extinct (EX)
+- Data deficient (DD)
+
+Let's see how our species is evaluated. We are using the rl_search() function which will return all sorts of information, but for now we're only interested in the category of the output:
+
+
+```{r, message=FALSE, warning=FALSE}
+threat_data = rl_search(taxon_name,key=iucn_api)
+threat_data$result$category
+```
+
+
+We can also view the history of IUCN assessments of our species and see if the trends have improved or worsened. Note that older evaluations may contain different categories, since IUCN has changed its' nomenclature several times in history:
+
+
+```{r, message=FALSE, warning=FALSE}
+rl_history(taxon_name,key=iucn_api)
+```
+
+### 5. Extract geographic information
+
+Unfortunately it is not possible to download range maps for your species via the package rredlist (at least not to my knowledge, IUCN is a bit particular about making their data available via programming interfaces). However, IUCN has range maps for most species in their database stored on their server. Precise range maps can instead be downloaded manually via the webpage, either for individual species, as we did in yesterdays tutorial, or in bulk for whole groups of taxa, e.g. all mammals, [via this link](https://www.iucnredlist.org/resources/spatial-data-download).
+
+
+Even though we can't get the actual range datavia the rredlist package, it at least offers a function `rl_occ_country()` which can be used to extract a list of countries where the species exists.
+
+```{r, message=FALSE, warning=FALSE}
+occurrence_countries = rl_occ_country(taxon_name,key=iucn_api)
+occurrence_countries
+```
+
+As you can see, the output also contains the information if the species is extant or extinct in the country where it was once found. In the next step we use this information to plot a world map with countries highlighted where our species has been found, with different coloring depending on if the species is extinct or extant in the respective country.
+
+### 6. Plotting geographic information
+
+First let's turn the `presence` column, which contains the info if the taxon is extinct/extant in each country, into an array of 0 (extinct) and 1 (extant), in order to use this information for plotting:
+
+```{r, message=FALSE, warning=FALSE}
+extant_extinct = occurrence_countries$result$presence
+extant_extinct[extant_extinct != "Extant"] <- 0
+extant_extinct[extant_extinct == "Extant"] <- 1
+extant_extinct
+```
+
+Now let's extract the list of countries where our species has been found:
+
+```{r, message=FALSE, warning=FALSE}
+theCountries <- c(occurrence_countries$result$code) # ISO2 country codes
+theCountries
+```
+
+Now we merge the list with our extinct/extant info with the list of the country names into one dataframe:
+
+```{r, message=FALSE, warning=FALSE}
+extDF <- data.frame(country = c(occurrence_countries$result$code), extant = c(extant_extinct))
+extDF
+```
+
+Now we will use the `rworldmap` package, which provides a function that allows us to find the countries on the world map based on their ISO2 codes (the 2-letter abbrevations in our country list):
+
+```{r, message=FALSE, warning=FALSE}
+library(rworldmap)
+extMap <- joinCountryData2Map(extDF, joinCode = "ISO2", nameJoinColumn = "country")
+```
+
+This will join your data from extDF the dataframe with the country map polygons to produce a `SpatialPolygonsDataFrame` object.
+
+Finally we can plot the map with the countries of presence of our species highlighted in red and the countries where the species went extinct in yellow. We'll use the `mapCountryData()` function from the rworldmap package to plot all countries and color them by the values in the target column of our dataframe, specficied with the `nameColumnToPlot=` setting.
+
+```{r, message=FALSE, warning=FALSE}
+mapCountryData(extMap, nameColumnToPlot="extant", catMethod = "categorical",
+  missingCountryCol = gray(.8))
+```
+
+## Resolving taxon names (taxize)
+
+Often in biology we are confronted with taxon names or lists of taxon names, and we need to somehow retrieve data for these taxa from public databases (as we did in the previous tutorial steps). The challenge here is usually to find the correct species name, since taxonomies can vary between databases and between different authors. Luckily there are great tools to standardize and resolve taxonomic issues in many cases, implemented in the `taxize` package.
+
+The `taxize` package provides access to taxonomic information sourced from many databases, among them the Global Names Resolver (GNR) service provided by the [Encyclopedia of Life](https://eol.org/). The advantage of `taxize` is that it is primarily designed for resolving taxonomic issues and thus has many useful functions for this purpose, compared to some similar but more simplified functionalities of the `rgbif` and `rredlist` packages we have seen in the previous tutorial steps.
+
+Let's first load the package.
+```{r, message=FALSE, warning=FALSE}
+library(taxize)
+```
+
+### 7. Finding correct taxon name for database
+
+Let's say we have a list of species names and we want to know if our species are spelled correctly.
+
+Here, we are searching for two **misspelled species names**:
+
+```{r, message=FALSE, warning=FALSE}
+temp <- gnr_resolve(names = c("Pantera tigrsi", "Homo saapiens"))
+temp
+```
+
+In the output you can find the database you want to download data from and use the according correct species name (can vary between databases).
+
+
+### 8. Getting species list for higher taxa
+
+Let's say we have a taxonomic family name and want to find all species belonging to this family, for example all dogs of the family Canidae.
+
+A number of data sources in taxize provide the capability to retrieve higher taxonomic names,for example the [NCBI taxonomy](https://www.ncbi.nlm.nih.gov/) (`db = "ncbi"`). We can search the taxonomy for taxa belonging to our specified group using the `downstream()` function. If this doens't work for some reason, it may be that usign a different database may help. In that case try `db= "bold"` instead `db = "ncbi"`.
+
+```{r, message=FALSE, warning=FALSE}
+species_output = downstream("Canidae", downto = "Species", db = "ncbi")
+species_output
+```
+
+You can now extract the list of all species belonging to your chosen family:
+```{r, message=FALSE, warning=FALSE}
+species_list = species_output$Canidae$childtaxa_name
+species_list
+```
+
+## Assignment 1
+
+Now where you have a basic overview over the use of the `rgbif`, `rredlist`, and `taxize` packages, you are ready to approach a bioinformatic task based on biodiversity data:
+
+Your supervisor asks you for help with a project about the cat family `Felidae`. Your task is to **create a map of global occurrences** of this family, **colored by species**. Further your supervisor asks you to retrieve a **list of IUCN threat statuses for all species of this family** (if you like a challenge, you can also create a second plot, colored by threat status instead of colored by species).
+
+Since these data are supposed to be used in a publication, your supervisor expects you as a properly trained biodiversity data wizard to provide a DOI assigned dataset of `Felidae` occurrence records to be cited in the study.
+
+**Tips for assignment:**
+
+There are different ways of solving this task, one approach could be:
+
+- create a download request containing all records assigned to the taxon `Felidae`, using the `occ_download()` function
+- download the data and load into R (step 8 in the first tutorial)
+- export the DOI reference of the data download (step 8 in the first tutorial)
+- plot occurrences colored by name (step 8 in the first tutorial)
+- retrieve a species list of the family `Felidae`, using the `taxize` package
+- get the IUCN RedList status for each species, using the `rl_search()` function
+
+## Assignment 2
+
+For the very fast and motivated people among you:
+
+You are being asked to plot the actual range maps of all Felidae species (according to IUCN) and on top plot all point occurrences (according to GBIF). For this purpose you need to download the actual range data, which can be downloaded for each species individually or as a big data-package, containing ranges of all mammal species ([download here](https://www.iucnredlist.org/resources/spatial-data-download)), and then you can extract the ranges of the species of interest. You can decide if you want to plot this all in one plot, or in separate plots, one for each species (doesn't have to be all Felidae species, but maybe a few selected ones).
+
+
+
+
+
