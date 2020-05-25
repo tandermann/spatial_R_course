@@ -3,8 +3,8 @@ title: "Basic spatial R workshop - 2"
 author: "Tobias Andermann"
 date: "5/24/2020"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -57,7 +57,7 @@ Task: Turn the coordinates into a `SpatialPoints` object, as we did in the first
 </div>
 
 
-```{r, message=FALSE, warning=FALSE, echo=False}
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 library(sp)
 locations = cbind(lon, lat)
 species_occurrences <- SpatialPoints(locations)
@@ -93,7 +93,7 @@ plot(species_occurrences,add=T)
 ```
 
 ### Count occurrences per grid cell
-Now convert the country polygon into a raster and then count for each cell the number of occurrences of your species of choice. This will give you an idea where the species occurs in higher densities. 
+Now convert the country polygon into a raster and then count for each cell the number of occurrences of your species of choice. This will give you an idea where the species occurs in higher densities.
 
 When using the `raster()` function you can set the resolution (in degrees in this case) to any value you like. The smaller the value, the smaller the cells and hence the more cells are being produced.
 
@@ -110,7 +110,7 @@ Task: Plot the resulting raster values of occurrence counts per cell and the pol
 </div>
 
 
-```{r, message=FALSE, warning=FALSE, echo=False}
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
 plot(counts_per_cell, main='Registered occurrences of target species')
 plot(selected_country,add=T)
 ```
@@ -121,27 +121,43 @@ In the exercise above we counted the number of occurrence points for each cell o
 
 As input data we are going to use the "present natural" rasters, produced by a recent study by Faurby et al, 2015 ('Historic and prehistoric human-driven extinctions have reshaped global mammal diversity patterns'), who will also be teaching during this course. In this study the authors modeled ranges of each mammal species under a scenario of no human disturbance (i.e. where would species most likely occur if no humans were present).
 
-The raster files can be found in `./data/present_natural_converted/`. There is one separate raster file per species and in the raster each cell is coded as 0 (species absent) or 1 (species present). Since we can just add values across different rasters, we can simply iterate through all raster files (using a `for(){}` loop) and keep adding them up, which will give us the total diversity for each cell. **This will take approx. 5 minutes!**
+The data is available via the [Phylacine database](https://megapast2future.github.io/PHYLACINE_1.2/). Click on the link in the 'Download the data' section to start the download. Unzip the downloaded file and copy it into your data folder that you downloaded from the course GutHub repo. The raster data we're after is stored in the `Data 2/Ranges/Present_natural/` folder (Windows users remmeber to replace all `/` with `\\`). You can see all files that are present in that folder using the `list.files()` command:
+
+```{r, message=FALSE, warning=FALSE}
+species_ranges=list.files('../data/Data 2/Ranges/Present_natural/')
+```
+
+The folder contains a separate raster file for each species. To read a raster file we can just use the `raster()` function and the file name. For example we can just select the first filename from our `species_ranges` list of files using `species_ranges[1]`. To actually find the file we need to join the filename with the path of the folder it's stored in, which we can do with the command `paste0()` that allows you to join to strings:
+
+```{r, message=FALSE, warning=FALSE}
+filepath = paste0('../data/Data 2/Ranges/Present_natural/',species_ranges[1])
+raster = raster(filepath)
+plot(raster)
+```
+
+In the rasters each cell is coded as 0 (species absent) or 1 (species present). You can see that the first raster file belongs to a species with a rather small distribution. Let us now create a map with the global present natural mammal diversity (if humans had never effected mammals distributions). For this we can simply iterate through all raster files (using a `for(){}` loop, see [here](https://rspatial.org/intr/10-flow.html#for-loops) for a quick tutorial on for-loops in R) and keep adding the rasters up, one after another, until we have a final raster with the total diversity for each cell. We first initiate the raster using the first file of the file list and then will go through the remaining files to add them one by one to the newly created raster object.
+
+Reading all raster files will take quite a while (~ 30 min). If you don't have the time or patience to wait around you can just select 500 random species from the file list using the command `species_ranges = sample(species_ranges,500)` at the beginning of the code block below.
 
 ```{r, message=FALSE, warning=FALSE, cache=TRUE}
 library(raster)
-
-species_ranges=list.files('../data/present_natural_converted/')
-
-rasters = raster(sprintf('../data/present_natural_converted/%s',species_ranges[1]))
+species_ranges = sample(species_ranges,500)
+merged_rasters = raster(paste0('../data/Data 2/Ranges/Present_natural/',species_ranges[1]))
 for (i in species_ranges[2:length(species_ranges)]){
-    species_raster=raster(sprintf('../data/present_natural_converted/%s',i))
-    rasters = rasters+species_raster
+    species_raster=raster(paste0('../data/Data 2/Ranges/Present_natural/',i))
+    merged_rasters = merged_rasters+species_raster
     }
 ```
 
-Plot the resulting raster of mammal species diversity:
+Plot the resulting raster of potential mammal species diversity:
 
 ```{r, message=FALSE, warning=FALSE}
-plot(rasters,axes=F,box=FALSE)
+plot(merged_rasters,axes=F,box=FALSE)
 ```
 
-You can already see that mammal diversity is distributed unevenly across the globe. However we have not yet delimited the geographoc features, the only reason why you can see where the continent are placed is because the structure of the diversity data. Now we want to delimit land from water, by plotting a world-map polygon on top of this raster. Load the world map stored at `global/ne_50m_land/ne_50m_land.shp`:
+You can already see that mammal diversity is distributed unevenly across the globe. However we have not yet delimited the geographic features, the only reason why you can see where the continents are placed is because the structure of the diversity data. Now we want to delimit land from water, by plotting a world-map polygon on top of this raster.
+
+Load the world map stored at `global/ne_50m_land/ne_50m_land.shp` and turn it into a spatial object.
 
 ```{r, message=FALSE, warning=FALSE}
 library(sf)
@@ -149,33 +165,35 @@ world = st_read('../data/global/ne_50m_land/ne_50m_land.shp')
 world_spatial = as(world, 'Spatial')
 ```
 
-Now let's plot the world polygon on top of the raster data to delimit land from water (hint: it's supposed to not work out properly, see next section).
+<div class="alert alert-block alert-warning">
+Task: Now plot the world polygon on top of the raster data to delimit land from water (hint: it's supposed to not work out properly, see next section).
+</div>
 
-```{r, message=FALSE, warning=FALSE}
-plot(rasters,axes=F,box=FALSE)
+```{r, message=FALSE, warning=FALSE, echo=FALSE}
+plot(merged_rasters,axes=F,box=FALSE)
 plot(world_spatial,add=T)
 ```
 
 ### Transforming coordinate system
 
-What went wrong here? Do you see the little black dot in the center of the plot? That's our world polygon! It looks like the coordinate system of our raster data does not match with that of the world map polygon (different projections). Let's check the projections of the two objects:
+What went wrong here? Do you see the little black dot in the center of the plot? That's our world polygon! It looks like the coordinate system of our raster data does not match with that of the world map polygon (different coordinate reference systems). Let's check the projections of the two objects:
 
 ```{r, message=FALSE, warning=FALSE}
-projection(rasters)
+projection(merged_rasters)
 projection(world_spatial)
 ```
 
-They are indeed different! You don't need to understand the different projections in detail but all you need to know is how to convert one projection into another. There are different tools to do this, some of the commonly used ones are the `spTransform()` function of the `rgdal` package or the `ptransform()` function of the `proj4` package, but unfortunately those two packages can be complicated to install on some systems, so in this tutorial we stick to the `st_transform()` function which is part of the `sf` package, which we already loaded above. The `st_transform()` function can be used to transform an `sf` object (output of `st_read()` function). This is why we are using the `world` object and not the `SpatialPolygon` object (`world_spatial`) in the following command. All we need to provide is the target projection, so in this case `projection(rasters)`:
+They are indeed different! You don't need to understand the different projections in detail but all you need to know is how to convert one projection into another. There are different tools to do this, some of the commonly used ones are the `spTransform()` function of the `rgdal` package or the `ptransform()` function of the `proj4` package, but unfortunately those two packages can be complicated to install on some systems, so in this tutorial we stick to the `st_transform()` function which is part of the `sf` package, which we already loaded above. The `st_transform()` function can be used to transform an `sf` object (output of `st_read()` function). This is why we are using the `world` object and not the `SpatialPolygon` object (`world_spatial`) in the following command. All we need to provide is the target projection, so in this case `projection(merged_rasters)`:
 
 ```{r, message=FALSE, warning=FALSE}
-transformed_world = st_transform(world,projection(rasters))
+transformed_world = st_transform(world,projection(merged_rasters))
 transformed_world_spatial = as(transformed_world, 'Spatial')
 ```
 
 Let's see what the plot looks like now:
 
 ```{r, message=FALSE, warning=FALSE}
-plot(rasters,axes=F,box=FALSE)
+plot(merged_rasters,axes=F,box=FALSE)
 plot(transformed_world_spatial,add=T)
 ```
 
@@ -184,7 +202,7 @@ plot(transformed_world_spatial,add=T)
 This looks much better, but what if we only want to plot the terrestrial mammal diversity? The reason why also the ocean cells have values in the raster is because of marine mammals, such as whales and dolphins. In case we are only interested in terrestrial mammal diversity, we can use the `mask()` function, which only keeps those cells that are within a given polygon (in this case the world map):
 
 ```{r, message=FALSE, warning=FALSE}
-land_cells = mask(rasters,transformed_world_spatial)
+land_cells = mask(merged_rasters,transformed_world_spatial)
 plot(land_cells,axes=F,box=FALSE,main='terrestrial mammal diversity')
 plot(transformed_world_spatial,add=T)
 ```
@@ -199,7 +217,7 @@ dev.off()
 ```
 
 <div class="alert alert-block alert-warning">
-**Task:** Now plot the mammal species diversity for a country of your choice. Don't forget to transform the polygon to the right coordinate projection!
+**Task:** Now plot the mammal species diversity for a country of your choice. You know how to extract the polygon for a specific country and you have the raster of mammal diversity. Don't forget to transform the polygon to the right coordinate projection!
 </div>
 
 
@@ -212,9 +230,9 @@ country = 'Sweden'
 country_index = which(all_countries$SOVEREIGNT == country)
 country_sf = all_countries[country_index,1]
 
-country_transformed = st_transform(country_sf,projection(rasters))
+country_transformed = st_transform(country_sf,projection(merged_rasters))
 country_transformed_spatial = as(country_transformed, 'Spatial')
-country_cells = mask(rasters,country_transformed_spatial)
+country_cells = mask(merged_rasters,country_transformed_spatial)
 
 plot(country_transformed_spatial,main=country)
 plot(country_cells,add=T)
@@ -223,11 +241,11 @@ plot(country_transformed_spatial,add=T)
 
 ### Transform matrix of coordinates into desired projection
 
-What if we want to transform a matrix of coordinates that we have loaded into R into any given projection? For example let's try to plot the eagle data from earlier on the transformed map from the previous section (choose your species and country).
+What if we want to transform a matrix of coordinates that we have loaded into R into any given projection? For example let's try to plot the `species_occurrences` data from earlier on the transformed map from the previous section.
 
-We first need to tell R what projection our coordinates are representing. You might find this information stored in the metadata that came with your occurrence files or if you collected the data yourself you may be able to find the information in the settings of your GPS device. However, if you have no idea what the projection of your coordinates is, look at the values of your coordinates and try to make out waht reference system they might stem from. Often a good first guess is `'+proj=longlat +datum=WGS84'`.
+We first need to tell R what projection our coordinates are currently in. You might find this information stored in the metadata that came with your occurrence files or if you collected the data yourself you may be able to find the information in the settings of your GPS device. However, if you have no idea what the projection of your coordinates is, look at the values of your coordinates and try to make out waht reference system they might stem from. Often a good first guess is `'+proj=longlat +datum=WGS84'`.
 
-In our case the data indeed is in `'+proj=longlat +datum=WGS84'`, so we can use the `CRS()` command from the `sp` package to turn this string into a coordinate reference system object.
+In our case the data indeed is in `'+proj=longlat +datum=WGS84'`, so we can use the `CRS()` command from the `sp` package to turn this string into a coordinate reference system object. The `class()` command shows you what object class a given object belongs to.
 
 
 ```{r, message=FALSE, warning=FALSE}
@@ -237,19 +255,19 @@ crdref <- CRS('+proj=longlat +datum=WGS84')
 class(crdref)
 ```
 
-Now we use this information when transforming our coordinates into a `SpatialPoints` object, by setting the argument `proj4string=` to `crdref`, which we defined in the previous step:
+Now we use this information when transforming our coordinates into a `SpatialPoints` object, by setting the argument `proj4string=` to `crdref`, which we defined in the previous step. This will make sure that the informaiton about the coordinate projection is stored with our spatial data.
 
 ```{r, message=FALSE, warning=FALSE}
-eagle_data_spatial <- SpatialPoints(locations,proj4string=crdref)
+species_occurrences <- SpatialPoints(locations,proj4string=crdref)
 ```
 
-In order to transform our `SpatialPoints` object into our desired projection, which is the projection of our rasters from earlier (`target_projection`), we can again use the `st_transform()` function, just as we did earlier for converting the world map polygon into the correct projection. However before we can use that function we need to convert our `SpatialPoints` object into a `sf` object (the function `st_transform()` only works for `sf` objects. We can simply do that using the `st_as_sf()` function, as shown below:
+Now where your `SpatialPoints` object has CRS infomration, you can project it into any desired different projection. In this case this is the projection of our rasters from earlier (`projection(merged_rasters)`). We can again use the `st_transform()` function, just as we did earlier for the world map polygon. However before we can use that function we need to convert our `SpatialPoints` object into a `sf` object (the function `st_transform()` only works for `sf` objects). We can simply do that using the `st_as_sf()` function, as shown below:
 
 ```{r, message=FALSE, warning=FALSE}
-target_projection = projection(rasters)
+target_projection = projection(merged_rasters)
 
-eagle_data_spatial_sf = st_as_sf(eagle_data_spatial)
-eagle_data_spatial_transformed = st_transform(eagle_data_spatial_sf,target_projection)
+species_occurrences_sf = st_as_sf(species_occurrences)
+species_occurrences_transformed = st_transform(species_occurrences_sf,target_projection)
 ```
 
 Now let's plot the data and see if it matches with our map.
@@ -257,41 +275,28 @@ Now let's plot the data and see if it matches with our map.
 ```{r, message=FALSE, warning=FALSE}
 plot(country_transformed_spatial,axes=T,main='Sweden')
 plot(country_cells,add=T)
-plot(eagle_data_spatial_transformed,pch=3,add=T)
+plot(species_occurrences_transformed,pch=3,add=T)
 ```
 
 ## C) Plotting range of a species
 
-In this part of the tutorial you will extract the current range of a species (data from IUCN) and plot it on top of the present natural range of the same species (where it would exists without human disturbance), in order to visualize the range contraction due to human impact. You can download the data either directly form <https://www.iucnredlist.org/> or from a prepared data file in my google drive at <https://drive.google.com/open?id=116iA5dF7iXxDren-zF1S-FIKjDlDWy5L>. Make sure that the data is unzipped and moved into the data folder before trying to read it into R.
+In this part of the tutorial you will extract the current range of a species (data from IUCN) and plot it on top of the present natural range of the same species (where it would exists without human disturbance), in order to visualize the range contraction due to human impact. You can download range data of individual species from [IUCN](https://www.iucnredlist.org/). You can search for your species of interest and then click on the blue Download button to the right. Seelct 'Range data'. You will probably be prompted to log in. You can just choose your google account to log in or make a new account at IUCN. Then you'll have to write what you want to use the data for (just write 'Needed for a course' or something short like that). You'll also have to agree to their terms and conditions and then a window will pop up that will suggest you to go to the accounts page. From there you can select your requested data under 'Saved downloads'. Click on 'download' (it may take a couple of minutes before your data is available and the button will appear) and store the data in the downlaoded github repo data folder. Then load the shape file into R.
 
-First we will read the range polygons of all mammal species. **This will take approximately 2 minutes!**
 
-```{r, message=FALSE, warning=FALSE, cache=TRUE}
+```{r, message=FALSE, warning=FALSE}
 library(sf)
-iucn_mammals = st_read('../data/IUCN_2016_3/MAMMALS.shp')
+species_data = st_read('../data/redlist_species_data_e5f54e49-d2e2-4f2e-ae85-1afbfaa20cb1/data_0.shp')
 ```
 
-### Get species range polygon
-The object `iucn_mammals` we just created contains range information for all mammal species. In order to extract the information for a specific species, we can execute the following lines. First specify the species name you are interested in and store it as `species=`:
+
+### Get species present natural raster
+The present natural raster files are stored at `../data/Data 2/Ranges/Present_natural/`. To find the raster file of a specific species you can use a combination of the gsub command (which will replace the space with a '_' in the species name) and the paste0 command (which you can use to paste the .tif file ending to the file and to join the filename with the path to the folder):
 
 ```{r, message=FALSE, warning=FALSE}
 species = 'Loxodonta africana'
-
-indeces = which(iucn_mammals$binomial == species)
-species_polygons = iucn_mammals[indeces,]
-
-class(species_polygons)
-```
-
-### Get species present natural raster
-The raster files, which we also used before in this tutorial, are stored at `./data/present_natural_converted/`. Set your working directory to the directory containing the data-folder. Once that is done, you can just use the code below to extract the raster of the species you defined above as `species=`.
-
-```{r, message=FALSE, warning=FALSE}
 filename = gsub(" ", "_", species)
-file_path = sprintf('../data/present_natural_converted/%s.grd',filename)
+file_path = paste0('../data/Data 2/Ranges/Present_natural/',filename,'.tif')
 species_prenat_raster = raster(file_path)
-
-class(species_prenat_raster)
 ```
 
 <div class="alert alert-block alert-warning">
@@ -301,14 +306,11 @@ Task: Use the commands you learned in this tutorial to plot the range of your sp
 ```{r, message=FALSE, warning=FALSE, echo=FALSE}
 # get range polygon
 species = 'Loxodonta africana'
-indeces = which(iucn_mammals$binomial == species)
-species_polygons = iucn_mammals[indeces,]
-
-class(species_polygons)
+species_polygons = st_read('../data/redlist_species_data_e5f54e49-d2e2-4f2e-ae85-1afbfaa20cb1/data_0.shp')
 
 # get raster
 filename = gsub(" ", "_", species)
-file_path = sprintf('../data/present_natural_converted/%s.grd',filename)
+file_path = paste0('../data/Data 2/Ranges/Present_natural/',filename,'.tif')
 species_prenat_raster = raster(file_path)
 
 
@@ -317,7 +319,7 @@ transformed_species_polygons = st_transform(species_polygons,projection(species_
 transformed_species_range = as(transformed_species_polygons, 'Spatial')
 #transformed_combined_species_range = aggregate(transformed_species_range)
 
-#plot 1 
+#plot 1
 plot(transformed_species_range,main=species)
 plot(species_prenat_raster,add=T,legend=F,axes=F,box=F)
 plot(transformed_species_range,col='red',add=T)

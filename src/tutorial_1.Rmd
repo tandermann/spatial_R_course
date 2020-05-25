@@ -3,8 +3,8 @@ title: "Basic spatial R workshop - 1"
 author: "Tobias Andermann"
 date: "5/24/2020"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -287,7 +287,14 @@ A shape file is usually made up of at least four parts. The .SHP, the .DBF, the 
 
 Below we are going to read a shape file of the country shape of Germany, downloaded from [DIVA-GIS](http://www.diva-gis.org/gdata). You can open the link and download your own shape file or work with the example data, which you can find in the data folder of the [GitHub repo of this course](https://github.com/tobiashofmann88/spatial_R_course). I recommend you download the whole complete GitHub repo by clicking on the green 'Clone or download' button and then 'Download as ZIP'.
 
-Once you have downloaded a shape file from DIVA-GIS or from the course GitHub repo, you can read the file into R using the `st_read()` function. To use this function we need to load the `sf` package with `library(sf)`. To load the file, make sure that you provide the correct file path from your current working directory. You can see your working directory with `getwd()`. From here you need to provide the path to where your file is stored.
+Once you have downloaded a shape file from DIVA-GIS or from the course GitHub repo, you can read the file into R using the `st_read()` function. To use this function we need to load the `sf` package with `library(sf)`. To load the file, make sure that you provide the correct file path from your current working directory. 
+
+
+<div class="alert alert-block alert-success">
+**Finding files in R**: Providing the right filepath to a file in R can be a bit difficult at the beginning when you're not used to finding files by navigating through the file path system. A good starting point is usually to check the current working directory. You can see your working directory with `getwd()`. From here you need to provide the path to where your file is stored. One nice feature about RStudio is that is autocompletes paths once you start writing them. For using this function just type './' and then press the Tab button, which will show you all available files and folders in your current directory. Choose the folder you want to navigate to and press Tab again to show the content of that folder. You can use `../` to navigate out of a folder inot the parent directory. **Important note for Windows users:** Instead of using `/` in the file path you will have to use `\\`!
+</div>
+
+
 
 ```{r, message=FALSE, warning=FALSE}
 library(sf)
