@@ -7,6 +7,10 @@ output:
   pdf_document: default
 ---
 
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
 
 ## Accessing biodiveristy data through web services (GBIF)
 In this tutorial we will go through some different functions related to downloading biodiveristy data, mostly from GBIF. The point of this tutorial is to provide you the tools to properly download such data in publication quality (DOI-assigned and thus tracable) and to provide you with some handy plotting functions to display the downloaded data.
@@ -331,7 +335,7 @@ In the plot you can zoom in and out and you can click on individual points to se
 
 If you want to play around with different colors, there is a great package called RColorBrewer, which you can use to generate visually pleasing palettes of colors. You can check out the options you can choose from by using the help function `?colorRampPalette()`. Here we first determine the number of species in our data (in case we have several) and then parse it into the function to create a different color for each species.
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE,eval=F, echo=T}
 library('RColorBrewer')
 
 n_spp <- length(unique(genus_records$name)) # number of unique taxa in dataframe (USE spp$name, NOT spp$taxonKey)
