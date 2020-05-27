@@ -21,3 +21,8 @@ Day 2:
 - [Third tutorial](http://htmlpreview.github.com/?https://github.com/tobiashofmann88/spatial_R_course/blob/master/tutorials/tutorial_3.html)
 
 - [Fourth tutorial](http://htmlpreview.github.com/?https://github.com/tobiashofmann88/spatial_R_course/blob/master/tutorials/tutorial_4.html)
+
+
+Day 3:
+
+- [Fifth tutorial](http://htmlpreview.github.com/?https://github.com/tobiashofmann88/spatial_R_course/blob/master/tutorials/tutorial_5.html)
