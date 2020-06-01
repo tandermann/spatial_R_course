@@ -18,6 +18,7 @@ library(raster)
 library(sf)
 library(ncf)
 library(spdep)
+library(wiqid)
 ```
 
 
