@@ -11,18 +11,18 @@ Click on the following links to view the tutorials in html format. Alternatively
 
 Day 1:
 
-- [First tutorial](http://htmlpreview.github.com/?https://github.com/tobiashofmann88/spatial_R_course/blob/master/tutorials/tutorial_1.html)
+- [First tutorial](http://htmlpreview.github.io/?https://github.com/tobiashofmann88/spatial_R_course/blob/master/tutorials/tutorial_1.html)
 
-- [Second tutorial](http://htmlpreview.github.com/?https://github.com/tobiashofmann88/spatial_R_course/blob/master/tutorials/tutorial_2.html)
+- [Second tutorial](http://htmlpreview.github.io/?https://github.com/tobiashofmann88/spatial_R_course/blob/master/tutorials/tutorial_2.html)
 
 
 Day 2:
 
-- [Third tutorial](http://htmlpreview.github.com/?https://github.com/tobiashofmann88/spatial_R_course/blob/master/tutorials/tutorial_3.html)
+- [Third tutorial](http://htmlpreview.github.io/?https://github.com/tobiashofmann88/spatial_R_course/blob/master/tutorials/tutorial_3.html)
 
-- [Fourth tutorial](http://htmlpreview.github.com/?https://github.com/tobiashofmann88/spatial_R_course/blob/master/tutorials/tutorial_4.html)
+- [Fourth tutorial](http://htmlpreview.github.io/?https://github.com/tobiashofmann88/spatial_R_course/blob/master/tutorials/tutorial_4.html)
 
 
 Day 3:
 
-- [Fifth tutorial](http://htmlpreview.github.com/?https://github.com/tobiashofmann88/spatial_R_course/blob/master/tutorials/tutorial_5.html)
+- [Fifth tutorial](http://htmlpreview.github.io/?https://github.com/tobiashofmann88/spatial_R_course/blob/master/tutorials/tutorial_5.html)
